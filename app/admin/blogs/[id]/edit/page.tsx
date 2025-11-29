@@ -5,6 +5,20 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import BlockEditor, { ContentBlock } from "@/components/BlockEditor";
+import {
+  FileText,
+  Save,
+  X,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
+  Info,
+  Calendar,
+  User,
+  Star,
+  FileEdit,
+  AlertTriangle,
+} from "lucide-react";
 
 export default function EditBlogPage() {
   const router = useRouter();
@@ -45,11 +59,9 @@ export default function EditBlogPage() {
         setAuthor(blog.author || "");
         setFeatured(blog.featured || false);
 
-        // Load content blocks if available, otherwise create from plain content
         if (blog.contentBlocks && Array.isArray(blog.contentBlocks)) {
           setContentBlocks(blog.contentBlocks);
         } else if (blog.content) {
-          // Convert plain content to blocks for backward compatibility
           const paragraphs = blog.content.split("\n\n");
           const blocks: ContentBlock[] = paragraphs.map((p: any, i: any) => ({
             id: `legacy-${i}`,
@@ -111,7 +123,6 @@ export default function EditBlogPage() {
     setError("");
     setSaving(true);
 
-    // Generate plain text content from blocks for backward compatibility
     const plainContent = contentBlocks
       .map((block) => {
         if (block.type === "heading") return block.content;
@@ -157,7 +168,9 @@ export default function EditBlogPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <p>Loading blog...</p>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin" />
+        </div>
       </AdminLayout>
     );
   }
@@ -165,8 +178,9 @@ export default function EditBlogPage() {
   if (error && !title) {
     return (
       <AdminLayout>
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       </AdminLayout>
     );
@@ -174,180 +188,280 @@ export default function EditBlogPage() {
 
   return (
     <AdminLayout>
-      <div>
-        <h1 className="text-3xl font-bold mb-8">Edit Blog Post</h1>
+      <div className="max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-[#00bcd4] rounded-xl flex items-center justify-center">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Blog Post</h1>
+          </div>
+          <p className="text-gray-600">Update your blog content and settings</p>
+        </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-lg shadow"
-        >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 text-red-800 rounded">
-              {error}
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <Info className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-            />
+          {/* Basic Information Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Info className="w-5 h-5 text-[#1e3a8a]" />
+              Post Information
+            </h2>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  URL Slug *
+                </label>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Excerpt
+                </label>
+                <textarea
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="A brief summary of the blog post (optional - will auto-generate from content if left empty)"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs text-gray-500">
+                    Recommended: 300-400 characters
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {excerpt.length}/500 characters
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">Slug *</label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-            />
+          {/* Featured Image Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-[#1e3a8a]" />
+              Featured Image
+            </h2>
+
+            <div className="space-y-4">
+              {/* Upload Section */}
+              <div>
+                <label className="block mb-3 font-medium text-sm text-gray-700">
+                  Upload to Cloudinary
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#1e3a8a] transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFeaturedImageUpload(file);
+                    }}
+                    disabled={uploadingFeaturedImage}
+                    className="hidden"
+                    id="featured-image-upload"
+                  />
+                  <label
+                    htmlFor="featured-image-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    {uploadingFeaturedImage ? (
+                      <>
+                        <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-3" />
+                        <p className="text-sm text-gray-600">Uploading...</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* URL Input */}
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Or paste image URL
+                </label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                />
+              </div>
+
+              {/* Image Preview */}
+              {imageUrl && (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                  <img
+                    src={imageUrl}
+                    alt="Featured image preview"
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">
-              Excerpt (1 paragraph summary, ~300-400 characters)
-            </label>
-            <textarea
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              rows={5}
-              maxLength={500}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              placeholder="A brief summary of the blog post (optional - will auto-generate from content if left empty)"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              {excerpt.length}/500 characters
-            </p>
-          </div>
-
-          {/* Block Editor */}
-          <div className="mb-8">
-            <label className="block mb-4 text-lg font-bold">
+          {/* Content Blocks Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <FileEdit className="w-5 h-5 text-[#1e3a8a]" />
               Blog Content *
-            </label>
+            </h2>
             <BlockEditor
               initialBlocks={contentBlocks}
               onChange={setContentBlocks}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-2 font-medium">Author</label>
-              <input
-                type="text"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-            </div>
+          {/* Metadata Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#1e3a8a]" />
+              Publishing Details
+            </h2>
 
-            <div>
-              <label className="block mb-2 font-medium">
-                Published Date (optional)
-              </label>
-              <input
-                type="datetime-local"
-                value={publishedAt}
-                onChange={(e) => setPublishedAt(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">Featured Image</label>
-
-            {/* Upload Option */}
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-2">
-                Upload to Cloudinary
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFeaturedImageUpload(file);
-                }}
-                disabled={uploadingFeaturedImage}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              {uploadingFeaturedImage && (
-                <p className="text-sm text-blue-600 mt-2">Uploading...</p>
-              )}
-            </div>
-
-            {/* Or Manual URL */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Or paste image URL
-              </label>
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-            </div>
-
-            {/* Preview */}
-            {imageUrl && (
-              <div className="mt-3">
-                <img
-                  src={imageUrl}
-                  alt="Featured image preview"
-                  className="max-w-md h-auto rounded border"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Author
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Author name"
+                    className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                  />
+                </div>
               </div>
-            )}
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Published Date (optional)
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="datetime-local"
+                    value={publishedAt}
+                    onChange={(e) => setPublishedAt(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Featured Toggle */}
-          <div className="mb-8 p-4 bg-blue-50 rounded-lg">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={(e) => setFeatured(e.target.checked)}
-                className="w-5 h-5 text-blue-500 rounded"
-              />
-              <span className="ml-3 font-medium">
-                ⭐ Feature this blog on homepage
-              </span>
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl border border-yellow-200 p-6">
+            <label className="flex items-start gap-4 cursor-pointer group">
+              <div className="flex-shrink-0 pt-1">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={featured}
+                    onChange={(e) => setFeatured(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-yellow-500 transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="w-5 h-5 text-yellow-600" />
+                  <span className="font-semibold text-gray-900">
+                    Feature this blog on homepage
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Featured blogs appear in the "Blog Preview" section on the
+                  homepage (max 2 blogs)
+                </p>
+              </div>
             </label>
-            <p className="text-sm text-gray-600 mt-2 ml-8">
-              Featured blogs appear in the "Blog Preview" section on the
-              homepage (max 2 blogs)
-            </p>
           </div>
 
-          <div className="flex gap-4">
+          {/* Form Actions */}
+          <div className="flex gap-4 pt-4">
             <button
               type="submit"
               disabled={saving}
-              className={`px-8 py-3 rounded font-medium text-base ${
-                saving
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 text-white"
-              }`}
+              className="flex items-center gap-2 px-8 py-3 bg-[#00bcd4] hover:bg-[#00acc1] text-white rounded-xl shadow-lg shadow-[#00bcd4]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Save Changes</span>
+                </>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => router.push("/admin/blogs")}
-              className="px-8 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-medium text-base"
+              className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 font-medium"
             >
-              Cancel
+              <X className="w-5 h-5" />
+              <span>Cancel</span>
             </button>
           </div>
         </form>

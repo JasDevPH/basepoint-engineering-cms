@@ -4,6 +4,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import {
+  Package,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  FolderOpen,
+  Layers,
+  Loader2,
+  Settings,
+} from "lucide-react";
 
 interface Product {
   id: string;
@@ -25,6 +36,7 @@ export default function ProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Category Modal State
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -68,8 +80,8 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+  const handleDeleteProduct = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
       const res = await fetch(`/api/admin/products/${id}`, {
@@ -183,122 +195,215 @@ export default function ProductsPage() {
     }
   };
 
+  // Filter products based on search
+  const filteredProducts = products.filter(
+    (product) =>
+      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
       <AdminLayout>
-        <p>Loading products...</p>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin" />
+        </div>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Products</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={openCategoryModal}
-            className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded font-medium"
-          >
-            📁 Manage Categories
-          </button>
-          <button
-            onClick={() => router.push("/admin/products/new")}
-            className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded font-medium"
-          >
-            + Add Product
-          </button>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Products</h1>
+            <p className="text-gray-600">Manage your product catalog</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={openCategoryModal}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Categories</span>
+            </button>
+            <button
+              onClick={() => router.push("/admin/products/new")}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Product</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold">
-                Slug
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold">
-                Variants
-              </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium">{product.title}</td>
-                <td className="px-6 py-4 text-gray-600 text-sm">
-                  {product.slug}
-                </td>
-                <td className="px-6 py-4 text-gray-600 text-sm">
-                  {product.category || "-"}
-                </td>
-                <td className="px-6 py-4 text-gray-600 text-sm">
-                  {product.variants?.length || 0}
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button
-                    onClick={() =>
-                      router.push(`/admin/products/${product.id}/edit`)
-                    }
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProduct(product.id)}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search products by name, slug, or category..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+          />
+        </div>
 
-        {products.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            No products yet. Click "Add Product" to create one.
+        {/* Products Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                <Package className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {searchQuery ? "No products found" : "No products yet"}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "Get started by creating your first product"}
+              </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => router.push("/admin/products/new")}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Product</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Variants
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredProducts.map((product) => (
+                    <tr
+                      key={product.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="font-semibold text-gray-900 mb-1">
+                            {product.title}
+                          </div>
+                          <div className="text-sm text-gray-500 font-mono">
+                            /{product.slug}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {product.category ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            {product.category}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-sm">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
+                          <Layers className="w-3.5 h-3.5" />
+                          {product.variants?.length || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              router.push(`/admin/products/${product.id}/edit`)
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium text-sm"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteProduct(product.id, product.title)
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium text-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Results count */}
+        {filteredProducts.length > 0 && (
+          <div className="text-sm text-gray-600">
+            Showing {filteredProducts.length} of {products.length} products
           </div>
         )}
       </div>
 
       {/* Category Management Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Manage Categories</h2>
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center">
+                  <FolderOpen className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Manage Categories
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Organize your products
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={closeCategoryModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                ×
+                <Plus className="w-5 h-5 text-gray-600 rotate-45" />
               </button>
             </div>
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {/* Category Form */}
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="text-lg font-bold mb-4">
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl mb-6 border border-blue-100">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
                   {categoryFormData.id ? "Edit Category" : "Add New Category"}
                 </h3>
                 <form onSubmit={handleCategorySubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-2 font-medium text-sm">
+                      <label className="block mb-2 font-medium text-sm text-gray-700">
                         Category Name *
                       </label>
                       <input
@@ -315,12 +420,12 @@ export default function ProductsPage() {
                           });
                         }}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block mb-2 font-medium text-sm">
+                      <label className="block mb-2 font-medium text-sm text-gray-700">
                         Slug *
                       </label>
                       <input
@@ -333,13 +438,13 @@ export default function ProductsPage() {
                           })
                         }
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white font-mono text-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-medium text-sm">
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
                       Description
                     </label>
                     <textarea
@@ -351,12 +456,12 @@ export default function ProductsPage() {
                         })
                       }
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-medium text-sm">
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
                       Display Order
                     </label>
                     <input
@@ -368,24 +473,23 @@ export default function ProductsPage() {
                           order: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
                     />
                   </div>
 
                   <div className="flex gap-3">
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded font-medium text-sm"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium"
                     >
-                      {categoryFormData.id
-                        ? "Update Category"
-                        : "Create Category"}
+                      <Plus className="w-4 h-4" />
+                      <span>{categoryFormData.id ? "Update" : "Create"}</span>
                     </button>
                     {categoryFormData.id && (
                       <button
                         type="button"
                         onClick={resetCategoryForm}
-                        className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded font-medium text-sm"
+                        className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all duration-200 font-medium"
                       >
                         Cancel Edit
                       </button>
@@ -396,25 +500,38 @@ export default function ProductsPage() {
 
               {/* Categories List */}
               <div>
-                <h3 className="text-lg font-bold mb-4">Existing Categories</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Existing Categories
+                </h3>
                 {categories.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    No categories yet. Create your first one above.
-                  </p>
+                  <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">
+                      No categories yet. Create your first one above.
+                    </p>
+                  </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {categories.map((category) => (
                       <div
                         key={category.id}
-                        className="flex items-center justify-between p-4 bg-white border rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all"
                       >
                         <div className="flex-1">
-                          <div className="font-semibold">{category.name}</div>
-                          <div className="text-sm text-gray-600">
-                            Slug: {category.slug} | Order: {category.order}
+                          <div className="flex items-center gap-3 mb-1">
+                            <FolderOpen className="w-4 h-4 text-[#1e3a8a]" />
+                            <span className="font-semibold text-gray-900">
+                              {category.name}
+                            </span>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                              Order: {category.order}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500 font-mono ml-7">
+                            /{category.slug}
                           </div>
                           {category.description && (
-                            <div className="text-sm text-gray-500 mt-1">
+                            <div className="text-sm text-gray-600 mt-1 ml-7">
                               {category.description}
                             </div>
                           )}
@@ -422,15 +539,17 @@ export default function ProductsPage() {
                         <div className="flex gap-2 ml-4">
                           <button
                             onClick={() => handleEditCategory(category)}
-                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium text-sm"
                           >
-                            Edit
+                            <Edit className="w-4 h-4" />
+                            <span>Edit</span>
                           </button>
                           <button
                             onClick={() => handleDeleteCategory(category.id)}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium text-sm"
                           >
-                            Delete
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       </div>
@@ -441,10 +560,10 @@ export default function ProductsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t bg-gray-50">
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
               <button
                 onClick={closeCategoryModal}
-                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded font-medium"
+                className="px-6 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl transition-all duration-200 font-medium"
               >
                 Close
               </button>

@@ -7,6 +7,21 @@ import AdminLayout from "@/components/AdminLayout";
 import ProductBlockEditor, {
   ProductContentBlock,
 } from "@/components/ProductBlockEditor";
+import {
+  Package,
+  Save,
+  X,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
+  Info,
+  Eye,
+  Sparkles,
+  FolderOpen,
+  Hash,
+  Table,
+  AlertTriangle,
+} from "lucide-react";
 
 interface PreviewVariant {
   capacity: string;
@@ -102,7 +117,6 @@ export default function EditProductPage() {
         setLengthUnit(product.lengthUnit || "ft");
         setConnectionStyles(product.connectionStyles || "");
 
-        // Get existing variants count
         if (product.variants) {
           setExistingVariantsCount(product.variants.length);
         }
@@ -276,7 +290,9 @@ export default function EditProductPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <p>Loading product...</p>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#1e3a8a] animate-spin" />
+        </div>
       </AdminLayout>
     );
   }
@@ -284,8 +300,9 @@ export default function EditProductPage() {
   if (error && !title) {
     return (
       <AdminLayout>
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       </AdminLayout>
     );
@@ -293,209 +310,328 @@ export default function EditProductPage() {
 
   return (
     <AdminLayout>
-      <div>
-        <h1 className="text-3xl font-bold mb-8">Edit Product</h1>
+      <div className="max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-[#00bcd4] rounded-xl flex items-center justify-center">
+              <Package className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
+          </div>
+          <p className="text-gray-600">
+            Update product information and content
+          </p>
+        </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-lg shadow"
-        >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 text-red-800 rounded">
-              {error}
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <Info className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block mb-2 font-medium">Product Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-            </div>
+          {/* Basic Information Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Info className="w-5 h-5 text-[#1e3a8a]" />
+              Basic Information
+            </h2>
 
-            <div>
-              <label className="block mb-2 font-medium">Slug *</label>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block mb-2 font-medium">Category</label>
-              {loadingCategories ? (
-                <p className="text-sm text-gray-500">Loading categories...</p>
-              ) : categories.length === 0 ? (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <select
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-base bg-gray-100"
-                  >
-                    <option>No categories available</option>
-                  </select>
-                  <p className="text-sm text-red-500 mt-1">
-                    Please create categories first using "Manage Categories" on
-                    Products page
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
+                    Product Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
+                    URL Slug *
+                  </label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
+                    Category
+                  </label>
+                  {loadingCategories ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading categories...</span>
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm text-amber-800">
+                        No categories available. Create one from the Products
+                        page.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none appearance-none bg-white"
+                      >
+                        <option value="">Select category...</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
+                    Display Order
+                  </label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="number"
+                      value={categoryOrder}
+                      onChange={(e) => setCategoryOrder(e.target.value)}
+                      placeholder="1, 2, 3..."
+                      className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Order within category
                   </p>
                 </div>
-              ) : (
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-                >
-                  <option value="">Select category...</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Short Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Featured Image Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-[#1e3a8a]" />
+              Featured Image
+            </h2>
+
+            <div className="space-y-4">
+              {/* Upload Section */}
+              <div>
+                <label className="block mb-3 font-medium text-sm text-gray-700">
+                  Upload Image
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#1e3a8a] transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                    disabled={uploadingImage}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin mb-3" />
+                        <p className="text-sm text-gray-600">Uploading...</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* URL Input */}
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Or paste image URL
+                </label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
+                />
+              </div>
+
+              {/* Image Preview */}
+              {imageUrl && (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                  <img
+                    src={imageUrl}
+                    alt="Product preview"
+                    className="w-full h-64 object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               )}
-              <p className="text-sm text-gray-500 mt-1">
-                Used for side navigation grouping
-              </p>
-            </div>
-
-            <div>
-              <label className="block mb-2 font-medium">Category Order</label>
-              <input
-                type="number"
-                value={categoryOrder}
-                onChange={(e) => setCategoryOrder(e.target.value)}
-                placeholder="1, 2, 3..."
-                className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Display order within category
-              </p>
             </div>
           </div>
 
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">Short Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block mb-2 font-medium">Featured Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleImageUpload(file);
-              }}
-              disabled={uploadingImage}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-3"
-            />
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Or paste image URL..."
-              className="w-full px-3 py-2 border border-gray-300 rounded text-base"
-            />
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="mt-3 max-w-md h-auto rounded border"
-              />
-            )}
-          </div>
-
-          <div className="mb-8">
-            <label className="block mb-4 text-lg font-bold">
+          {/* Content Blocks Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Package className="w-5 h-5 text-[#1e3a8a]" />
               Product Content
-            </label>
+            </h2>
             <ProductBlockEditor
               initialBlocks={contentBlocks}
               onChange={setContentBlocks}
             />
           </div>
 
-          <div className="mb-8 p-4 bg-blue-50 rounded-lg">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showVariantsTable}
-                onChange={(e) => setShowVariantsTable(e.target.checked)}
-                className="w-5 h-5 text-blue-500 rounded"
-              />
-              <span className="ml-3 font-medium">
-                📊 Show Variants Table on Product Page
-              </span>
+          {/* Variants Table Toggle */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 p-6">
+            <label className="flex items-start gap-4 cursor-pointer group">
+              <div className="flex-shrink-0 pt-1">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={showVariantsTable}
+                    onChange={(e) => setShowVariantsTable(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-[#1e3a8a] transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Table className="w-5 h-5 text-[#1e3a8a]" />
+                  <span className="font-semibold text-gray-900">
+                    Show Variants Table on Product Page
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Display a table of all product variants with specifications
+                </p>
+              </div>
             </label>
           </div>
 
           {/* Auto-Generate Variants */}
-          <div className="mb-8 p-4 bg-purple-50 rounded-lg">
-            <label className="flex items-center cursor-pointer mb-4">
-              <input
-                type="checkbox"
-                checked={autoGenerate}
-                onChange={(e) => setAutoGenerate(e.target.checked)}
-                className="w-5 h-5 text-purple-500 rounded"
-              />
-              <span className="ml-3 font-medium">
-                🤖 Auto-Generate Variants
-              </span>
-              {existingVariantsCount > 0 && (
-                <span className="ml-3 px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-sm font-medium">
-                  {existingVariantsCount} existing variants
-                </span>
-              )}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-200 p-6">
+            <label className="flex items-start gap-4 cursor-pointer group mb-6">
+              <div className="flex-shrink-0 pt-1">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={autoGenerate}
+                    onChange={(e) => setAutoGenerate(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-purple-600 transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-gray-900">
+                    Auto-Generate Variants
+                  </span>
+                  {existingVariantsCount > 0 && (
+                    <span className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-xs font-semibold">
+                      {existingVariantsCount} existing
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">
+                  Automatically regenerate product variants from specifications
+                </p>
+              </div>
             </label>
 
             {autoGenerate && (
-              <div className="space-y-4 ml-8">
+              <div className="space-y-5 pl-15">
                 {existingVariantsCount > 0 && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p className="text-sm text-yellow-800">
-                      ⚠️ <strong>Note:</strong> Changing these values will
-                      regenerate all variants. Existing variants will be
-                      replaced.
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      <strong>Warning:</strong> Changing these values will
+                      regenerate all variants. Existing {existingVariantsCount}{" "}
+                      variant(s) will be replaced.
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-1 text-sm font-medium">
-                      Capacities *
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
+                      Capacities (comma-separated) *
                     </label>
                     <input
                       type="text"
                       value={capacities}
                       onChange={(e) => setCapacities(e.target.value)}
                       placeholder="30, 40, 50"
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-medium">
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
                       Unit
                     </label>
                     <select
                       value={capacityUnit}
                       onChange={(e) => setCapacityUnit(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none bg-white"
                     >
                       <option value="tons">Tons</option>
                       <option value="lbs">Lbs</option>
@@ -504,9 +640,9 @@ export default function EditProductPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-1 text-sm font-medium">
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
                       Lengths (optional)
                     </label>
                     <input
@@ -514,17 +650,17 @@ export default function EditProductPage() {
                       value={lengths}
                       onChange={(e) => setLengths(e.target.value)}
                       placeholder="12, 20, 30, 40, 50"
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-medium">
+                    <label className="block mb-2 font-medium text-sm text-gray-700">
                       Unit
                     </label>
                     <select
                       value={lengthUnit}
                       onChange={(e) => setLengthUnit(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none bg-white"
                     >
                       <option value="ft">Feet</option>
                       <option value="m">Meters</option>
@@ -534,7 +670,7 @@ export default function EditProductPage() {
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium">
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
                     Connection Styles (optional)
                   </label>
                   <input
@@ -542,78 +678,83 @@ export default function EditProductPage() {
                     value={connectionStyles}
                     onChange={(e) => setConnectionStyles(e.target.value)}
                     placeholder="Swivel Lug, Double Lug, Clearance Lug"
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none bg-white"
                   />
                 </div>
 
-                {/* Generate Preview Button */}
-                <div className="pt-4">
+                {/* Preview Button */}
+                <div className="pt-2">
                   <button
                     type="button"
                     onClick={generateVariantsPreview}
-                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded font-medium"
+                    className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-600/30 transition-all duration-200 font-medium"
                   >
-                    🔍 Preview Variants (
-                    {previewVariants.length > 0 ? previewVariants.length : "?"})
+                    <Eye className="w-4 h-4" />
+                    <span>
+                      Preview Variants (
+                      {previewVariants.length > 0
+                        ? previewVariants.length
+                        : "?"}
+                      )
+                    </span>
                   </button>
                 </div>
 
-                {/* Variants Preview Table */}
+                {/* Variants Preview */}
                 {showPreview && previewVariants.length > 0 && (
-                  <div className="mt-6 bg-white p-4 rounded-lg border-2 border-indigo-200">
+                  <div className="bg-white p-5 rounded-xl border-2 border-purple-300 shadow-lg">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-bold text-indigo-900">
-                        Variants Preview ({previewVariants.length} variants will
-                        be{" "}
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Preview ({previewVariants.length} variants will be{" "}
                         {existingVariantsCount > 0 ? "regenerated" : "created"})
                       </h3>
                       <button
                         type="button"
                         onClick={() => setShowPreview(false)}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                       >
-                        ✕
+                        <X className="w-5 h-5 text-gray-600" />
                       </button>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      <table className="w-full border-collapse">
-                        <thead className="bg-indigo-50 sticky top-0">
+                    <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 sticky top-0">
                           <tr>
-                            <th className="px-4 py-2 text-left text-sm font-semibold border">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                               Model Number
                             </th>
-                            <th className="px-4 py-2 text-left text-sm font-semibold border">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                               Capacity
                             </th>
                             {previewVariants.some((v) => v.length) && (
-                              <th className="px-4 py-2 text-left text-sm font-semibold border">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                                 Length
                               </th>
                             )}
                             {previewVariants.some((v) => v.endConnection) && (
-                              <th className="px-4 py-2 text-left text-sm font-semibold border">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                                 End Connection
                               </th>
                             )}
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-200 bg-white">
                           {previewVariants.map((variant, index) => (
                             <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-4 py-2 border text-sm font-mono">
+                              <td className="px-4 py-3 text-sm font-mono font-medium text-gray-900">
                                 {variant.modelNumber}
                               </td>
-                              <td className="px-4 py-2 border text-sm">
+                              <td className="px-4 py-3 text-sm text-gray-700">
                                 {variant.capacity}
                               </td>
                               {previewVariants.some((v) => v.length) && (
-                                <td className="px-4 py-2 border text-sm">
-                                  {variant.length || "-"}
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {variant.length || "—"}
                                 </td>
                               )}
                               {previewVariants.some((v) => v.endConnection) && (
-                                <td className="px-4 py-2 border text-sm">
-                                  {variant.endConnection || "-"}
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {variant.endConnection || "—"}
                                 </td>
                               )}
                             </tr>
@@ -621,37 +762,47 @@ export default function EditProductPage() {
                         </tbody>
                       </table>
                     </div>
-                    <p className="text-sm text-gray-600 mt-4">
-                      💡{" "}
-                      {existingVariantsCount > 0
-                        ? "Existing variants will be replaced with these new ones when you save."
-                        : "These variants will be automatically created when you save the product."}
-                    </p>
+                    <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 rounded-lg">
+                      <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-blue-800">
+                        {existingVariantsCount > 0
+                          ? "Existing variants will be replaced with these new ones when you save."
+                          : "These variants will be automatically created when you save the product."}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="flex gap-4">
+          {/* Form Actions */}
+          <div className="flex gap-4 pt-4">
             <button
               type="submit"
               disabled={saving}
-              className={`px-8 py-3 rounded font-medium text-base ${
-                saving
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 text-white"
-              }`}
+              className="flex items-center gap-2 px-8 py-3 bg-[#00bcd4] hover:bg-[#00acc1] text-white rounded-xl shadow-lg shadow-[#00bcd4]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Save Changes</span>
+                </>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => router.push("/admin/products")}
-              className="px-8 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded font-medium text-base"
+              className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 font-medium"
             >
-              Cancel
+              <X className="w-5 h-5" />
+              <span>Cancel</span>
             </button>
           </div>
         </form>

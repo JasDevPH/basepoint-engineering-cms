@@ -2,6 +2,21 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Heading,
+  Type,
+  List,
+  Image as ImageIcon,
+  Minus,
+  GripVertical,
+  Trash2,
+  Upload,
+  Loader2,
+  Plus,
+  X,
+  ClipboardList,
+  FileQuestion,
+} from "lucide-react";
 
 export interface ProductContentBlock {
   id: string;
@@ -176,358 +191,428 @@ export default function ProductBlockEditor({
     }
   };
 
+  const blockTypeConfig = {
+    heading: { icon: Heading, color: "blue", label: "Heading" },
+    paragraph: { icon: Type, color: "green", label: "Paragraph" },
+    list: { icon: List, color: "teal", label: "List" },
+    specifications: {
+      icon: ClipboardList,
+      color: "indigo",
+      label: "Specifications",
+    },
+    image: { icon: ImageIcon, color: "purple", label: "Image" },
+    "quote-form": { icon: FileQuestion, color: "yellow", label: "Quote Form" },
+    divider: { icon: Minus, color: "gray", label: "Divider" },
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Add Block Buttons */}
-      <div className="flex gap-2 flex-wrap p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <button
-          type="button"
-          onClick={() => addBlock("heading")}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
-        >
-          + Heading
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("paragraph")}
-          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-sm font-medium"
-        >
-          + Paragraph
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("list")}
-          className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded text-sm font-medium"
-        >
-          + List
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("specifications")}
-          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-sm font-medium"
-        >
-          + Specifications
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("image")}
-          className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm font-medium"
-        >
-          + Image
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("quote-form")}
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm font-medium"
-        >
-          + Quote Form
-        </button>
-        <button
-          type="button"
-          onClick={() => addBlock("divider")}
-          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium"
-        >
-          + Divider
-        </button>
+      <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300">
+        <p className="text-sm font-medium text-gray-700 mb-3">
+          Add Content Block
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          {Object.entries(blockTypeConfig).map(([type, config]) => {
+            const Icon = config.icon;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => addBlock(type as ProductContentBlock["type"])}
+                className={`flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg transition-all text-sm font-medium text-gray-700 hover:shadow-md`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{config.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Blocks */}
       <div className="space-y-4">
-        {blocks.map((block, index) => (
-          <div
-            key={block.id}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDragEnd={handleDragEnd}
-            className={`p-4 bg-white border-2 rounded-lg ${
-              draggedIndex === index
-                ? "border-blue-500 opacity-50"
-                : "border-gray-200"
-            }`}
-          >
-            {/* Block Header */}
-            <div className="flex items-center justify-between mb-3 pb-3 border-b">
-              <div className="flex items-center gap-2">
-                <span className="cursor-move text-gray-400 hover:text-gray-600">
-                  ⋮⋮
-                </span>
-                <span className="text-sm font-medium text-gray-700 capitalize">
-                  {block.type.replace("-", " ")}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteBlock(block.id)}
-                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
-              >
-                Delete
-              </button>
-            </div>
+        {blocks.map((block, index) => {
+          const config = blockTypeConfig[block.type];
+          const Icon = config?.icon;
 
-            {/* Block Content - Heading */}
-            {block.type === "heading" && (
-              <div className="space-y-3">
-                <select
-                  value={block.level || 2}
-                  onChange={(e) =>
-                    updateBlock(block.id, { level: parseInt(e.target.value) })
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded"
-                >
-                  <option value={1}>H1 - Main Title</option>
-                  <option value={2}>H2 - Section</option>
-                  <option value={3}>H3 - Subsection</option>
-                </select>
-                <input
-                  type="text"
-                  value={block.content}
-                  onChange={(e) =>
-                    updateBlock(block.id, { content: e.target.value })
-                  }
-                  placeholder="Heading text..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-              </div>
-            )}
-
-            {/* Block Content - Paragraph */}
-            {block.type === "paragraph" && (
-              <textarea
-                value={block.content}
-                onChange={(e) =>
-                  updateBlock(block.id, { content: e.target.value })
-                }
-                placeholder="Paragraph text..."
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              />
-            )}
-
-            {/* Block Content - List */}
-            {block.type === "list" && (
-              <div className="space-y-3">
-                <select
-                  value={block.listType || "bullet"}
-                  onChange={(e) =>
-                    updateBlock(block.id, {
-                      listType: e.target.value as "bullet" | "numbered",
-                    })
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded"
-                >
-                  <option value="bullet">• Bullet Points</option>
-                  <option value="numbered">1. Numbered List</option>
-                </select>
-                <div className="space-y-2">
-                  {block.listItems?.map((item, itemIndex) => (
-                    <div key={itemIndex} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={item}
-                        onChange={(e) =>
-                          updateListItem(block.id, itemIndex, e.target.value)
-                        }
-                        placeholder={`Item ${itemIndex + 1}...`}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded"
-                      />
-                      {block.listItems && block.listItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => deleteListItem(block.id, itemIndex)}
-                          className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+          return (
+            <div
+              key={block.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`bg-white rounded-xl border-2 transition-all ${
+                draggedIndex === index
+                  ? "border-blue-500 shadow-lg opacity-50"
+                  : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+              }`}
+            >
+              {/* Block Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+                <div className="flex items-center gap-3">
+                  <GripVertical className="w-5 h-5 text-gray-400 cursor-move hover:text-gray-600" />
+                  {Icon && <Icon className="w-4 h-4 text-gray-600" />}
+                  <span className="text-sm font-semibold text-gray-900 capitalize">
+                    {config?.label || block.type.replace("-", " ")}
+                  </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => addListItem(block.id)}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
+                  onClick={() => deleteBlock(block.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium"
                 >
-                  + Add Item
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
               </div>
-            )}
 
-            {/* Block Content - Specifications */}
-            {block.type === "specifications" && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Add key specifications (e.g., "Capacity: 20 tons")
-                </p>
-                <div className="space-y-2">
-                  {block.specs?.map((spec, specIndex) => (
-                    <div key={specIndex} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={spec.label}
+              {/* Block Content */}
+              <div className="p-4">
+                {/* Heading */}
+                {block.type === "heading" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Heading Level
+                      </label>
+                      <select
+                        value={block.level || 2}
                         onChange={(e) =>
-                          updateSpecItem(
-                            block.id,
-                            specIndex,
-                            "label",
-                            e.target.value
-                          )
+                          updateBlock(block.id, {
+                            level: parseInt(e.target.value),
+                          })
                         }
-                        placeholder="Label (e.g., Capacity)"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded"
-                      />
-                      <input
-                        type="text"
-                        value={spec.value}
-                        onChange={(e) =>
-                          updateSpecItem(
-                            block.id,
-                            specIndex,
-                            "value",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Value (e.g., 20 tons)"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded"
-                      />
-                      {block.specs && block.specs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => deleteSpecItem(block.id, specIndex)}
-                          className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
-                        >
-                          ✕
-                        </button>
-                      )}
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                      >
+                        <option value={1}>H1 - Main Title</option>
+                        <option value={2}>H2 - Section</option>
+                        <option value={3}>H3 - Subsection</option>
+                      </select>
                     </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => addSpecItem(block.id)}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
-                >
-                  + Add Spec
-                </button>
-              </div>
-            )}
-
-            {/* Block Content - Image */}
-            {block.type === "image" && (
-              <div className="space-y-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageUpload(block.id, file);
-                  }}
-                  disabled={uploadingImageId === block.id}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                {uploadingImageId === block.id && (
-                  <p className="text-sm text-blue-600">Uploading...</p>
+                    <input
+                      type="text"
+                      value={block.content}
+                      onChange={(e) =>
+                        updateBlock(block.id, { content: e.target.value })
+                      }
+                      placeholder="Heading text..."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                    />
+                  </div>
                 )}
-                <input
-                  type="url"
-                  value={block.content}
-                  onChange={(e) =>
-                    updateBlock(block.id, { content: e.target.value })
-                  }
-                  placeholder="Or paste image URL..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-                <input
-                  type="text"
-                  value={block.alt || ""}
-                  onChange={(e) =>
-                    updateBlock(block.id, { alt: e.target.value })
-                  }
-                  placeholder="Alt text..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-                {block.content && (
-                  <img
-                    src={block.content}
-                    alt={block.alt || "Preview"}
-                    className="max-w-full h-auto rounded border"
+
+                {/* Paragraph */}
+                {block.type === "paragraph" && (
+                  <textarea
+                    value={block.content}
+                    onChange={(e) =>
+                      updateBlock(block.id, { content: e.target.value })
+                    }
+                    placeholder="Paragraph text..."
+                    rows={4}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none resize-none"
                   />
                 )}
-              </div>
-            )}
 
-            {/* Block Content - Quote Form */}
-            {block.type === "quote-form" && (
-              <div className="p-4 bg-yellow-50 rounded border border-yellow-200">
-                <p className="text-sm text-gray-700">
-                  📝 Quote form will be displayed here (styled based on your
-                  design)
+                {/* List */}
+                {block.type === "list" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        List Type
+                      </label>
+                      <select
+                        value={block.listType || "bullet"}
+                        onChange={(e) =>
+                          updateBlock(block.id, {
+                            listType: e.target.value as "bullet" | "numbered",
+                          })
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                      >
+                        <option value="bullet">• Bullet Points</option>
+                        <option value="numbered">1. Numbered List</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      {block.listItems?.map((item, itemIndex) => (
+                        <div key={itemIndex} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={item}
+                            onChange={(e) =>
+                              updateListItem(
+                                block.id,
+                                itemIndex,
+                                e.target.value
+                              )
+                            }
+                            placeholder={`Item ${itemIndex + 1}...`}
+                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                          />
+                          {block.listItems && block.listItems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteListItem(block.id, itemIndex)
+                              }
+                              className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addListItem(block.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Item</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Specifications */}
+                {block.type === "specifications" && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                      Add key specifications (e.g., "Capacity: 20 tons")
+                    </p>
+                    <div className="space-y-2">
+                      {block.specs?.map((spec, specIndex) => (
+                        <div key={specIndex} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={spec.label}
+                            onChange={(e) =>
+                              updateSpecItem(
+                                block.id,
+                                specIndex,
+                                "label",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Label (e.g., Capacity)"
+                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={spec.value}
+                            onChange={(e) =>
+                              updateSpecItem(
+                                block.id,
+                                specIndex,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Value (e.g., 20 tons)"
+                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                          />
+                          {block.specs && block.specs.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteSpecItem(block.id, specIndex)
+                              }
+                              className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addSpecItem(block.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Specification</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Image */}
+                {block.type === "image" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Upload Image
+                      </label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#1e3a8a] transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(block.id, file);
+                          }}
+                          disabled={uploadingImageId === block.id}
+                          className="hidden"
+                          id={`product-image-upload-${block.id}`}
+                        />
+                        <label
+                          htmlFor={`product-image-upload-${block.id}`}
+                          className="cursor-pointer flex flex-col items-center"
+                        >
+                          {uploadingImageId === block.id ? (
+                            <>
+                              <Loader2 className="w-10 h-10 text-[#1e3a8a] animate-spin mb-2" />
+                              <p className="text-sm text-gray-600">
+                                Uploading...
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                              <p className="text-sm font-medium text-gray-700">
+                                Click to upload
+                              </p>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Or paste image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={block.content}
+                        onChange={(e) =>
+                          updateBlock(block.id, { content: e.target.value })
+                        }
+                        placeholder="https://..."
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                      />
+                    </div>
+
+                    <input
+                      type="text"
+                      value={block.alt || ""}
+                      onChange={(e) =>
+                        updateBlock(block.id, { alt: e.target.value })
+                      }
+                      placeholder="Alt text..."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent outline-none"
+                    />
+
+                    {block.content && (
+                      <div className="relative rounded-lg overflow-hidden border border-gray-200">
+                        <img
+                          src={block.content}
+                          alt={block.alt || "Preview"}
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Quote Form */}
+                {block.type === "quote-form" && (
+                  <div className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg border-2 border-yellow-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <FileQuestion className="w-6 h-6 text-yellow-600" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        Quote Request Form
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      A quote form will be displayed here (styled based on your
+                      design)
+                    </p>
+                    <input
+                      type="text"
+                      value={block.content}
+                      onChange={(e) =>
+                        updateBlock(block.id, { content: e.target.value })
+                      }
+                      placeholder="Form title (optional)..."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* Divider */}
+                {block.type === "divider" && (
+                  <div className="py-4">
+                    <hr className="border-t-2 border-gray-300" />
+                  </div>
+                )}
+              </div>
+
+              {/* Spacing Controls */}
+              <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wide">
+                  Spacing
                 </p>
-                <input
-                  type="text"
-                  value={block.content}
-                  onChange={(e) =>
-                    updateBlock(block.id, { content: e.target.value })
-                  }
-                  placeholder="Form title (optional)..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded mt-2"
-                />
-              </div>
-            )}
-
-            {/* Block Content - Divider */}
-            {block.type === "divider" && (
-              <div className="py-4">
-                <hr className="border-t-2 border-gray-300" />
-              </div>
-            )}
-
-            {/* Spacing Controls */}
-            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Margin Top: {block.marginTop || 0}px
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={block.marginTop || 0}
-                  onChange={(e) =>
-                    updateBlock(block.id, {
-                      marginTop: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Margin Bottom: {block.marginBottom || 0}px
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={block.marginBottom || 0}
-                  onChange={(e) =>
-                    updateBlock(block.id, {
-                      marginBottom: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                      Top: {block.marginTop || 0}px
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={block.marginTop || 0}
+                      onChange={(e) =>
+                        updateBlock(block.id, {
+                          marginTop: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1e3a8a]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                      Bottom: {block.marginBottom || 0}px
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={block.marginBottom || 0}
+                      onChange={(e) =>
+                        updateBlock(block.id, {
+                          marginBottom: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1e3a8a]"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* Empty State */}
       {blocks.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          No content blocks yet. Click the buttons above to add content.
+        <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+          <Type className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium mb-1">
+            No content blocks yet
+          </p>
+          <p className="text-sm text-gray-500">
+            Click the buttons above to add content
+          </p>
         </div>
       )}
     </div>
