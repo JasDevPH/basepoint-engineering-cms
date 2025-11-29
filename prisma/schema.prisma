@@ -1,0 +1,91 @@
+// FILE: prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  title           String
+  description     String?          @db.Text
+  contentBlocks   Json?            // Add structured content blocks
+  showVariantsTable Boolean        @default(true)  // Toggle variants table display
+  imageUrl        String?
+  category        String?          // Add category for navigation
+  categoryOrder   Int?             // Order within category
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Auto-generate variant fields
+  autoGenerate    Boolean          @default(false)
+  capacities      String?
+  capacityUnit    String?          @default("tons")
+  lengths         String?
+  lengthUnit      String?          @default("ft")
+  connectionStyles String?
+  
+  variants        ProductVariant[]
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  modelNumber String?  // Make optional instead of required
+  capacity    String
+  length      String?
+  endConnection String?
+  
+  // Additional specs for table
+  maxSpread   String?
+  minSpread   String?
+  headroom    String?
+  unitWeight  String?
+  
+  price       Float?
+  stock       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([productId])
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  content     String   @db.Text  // Keep for backward compatibility
+  contentBlocks Json?   // New: structured content blocks
+  excerpt     String?
+  imageUrl    String?
+  author      String?
+  featured    Boolean  @default(false)
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
