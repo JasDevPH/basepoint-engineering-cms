@@ -2,11 +2,13 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Package,
   FileText,
+  Briefcase,
   LogOut,
   Menu,
   X,
@@ -17,14 +19,21 @@ interface AdminLayoutProps {
   children: ReactNode;
 }
 
+// Create a singleton auth state that persists across navigations
+let isAuthenticated = false;
+let authChecked = false;
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!authChecked);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    checkAuth();
+    // Only check auth if we haven't checked before
+    if (!authChecked) {
+      checkAuth();
+    }
   }, []);
 
   const checkAuth = async () => {
@@ -33,17 +42,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       const data = await res.json();
 
       if (!data.success) {
+        isAuthenticated = false;
+        authChecked = false;
         router.push("/admin/login");
       } else {
+        isAuthenticated = true;
+        authChecked = true;
         setLoading(false);
       }
     } catch (error) {
+      isAuthenticated = false;
+      authChecked = false;
       router.push("/admin/login");
     }
   };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
+    isAuthenticated = false;
+    authChecked = false;
     router.push("/admin/login");
   };
 
@@ -51,8 +68,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { label: "Products", path: "/admin/products", icon: Package },
     { label: "Blogs", path: "/admin/blogs", icon: FileText },
+    { label: "Services", path: "/admin/services", icon: Briefcase },
   ];
 
+  // Check if path is active
+  const isPathActive = (itemPath: string) => {
+    // For dashboard, only match exact path
+    if (itemPath === "/admin") {
+      return pathname === "/admin";
+    }
+    // For other routes, match if pathname starts with the item path
+    return pathname === itemPath || pathname.startsWith(itemPath + "/");
+  };
+
+  // Show loading only on initial auth check
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -85,6 +114,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   width={180}
                   height={60}
                   className="object-contain"
+                  priority
                 />
               </div>
             ) : (
@@ -95,6 +125,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   width={40}
                   height={40}
                   className="object-contain"
+                  priority
                 />
               </div>
             )}
@@ -114,12 +145,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <nav className="flex-1 px-3 py-6 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.path;
+              const isActive = isPathActive(item.path);
 
               return (
-                <a
+                <Link
                   key={item.path}
                   href={item.path}
+                  prefetch={true}
                   className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group ${
                     isActive
                       ? "bg-[#1e3a8a] text-white shadow-lg shadow-[#1e3a8a]/20"
@@ -136,7 +168,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {sidebarOpen && (
                     <span className="font-medium">{item.label}</span>
                   )}
-                </a>
+                </Link>
               );
             })}
           </nav>

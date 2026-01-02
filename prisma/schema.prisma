@@ -13,13 +13,17 @@ model Product {
   slug            String           @unique
   title           String
   description     String?          @db.Text
-  contentBlocks   Json?            // Add structured content blocks
-  showVariantsTable Boolean        @default(true)  // Toggle variants table display
+  contentBlocks   Json?
+  showVariantsTable Boolean        @default(true)
   imageUrl        String?
-  category        String?          // Add category for navigation
-  categoryOrder   Int?             // Order within category
+  category        String?
+  categoryOrder   Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  
+  // Pricing
+  basePrice       Float?           // Base price for all variants (optional)
+  priceType       String           @default("base") // "base" or "variant"
   
   // Auto-generate variant fields
   autoGenerate    Boolean          @default(false)
@@ -28,6 +32,7 @@ model Product {
   lengths         String?
   lengthUnit      String?          @default("ft")
   connectionStyles String?
+  customFields      Json? 
   
   variants        ProductVariant[]
 }
@@ -37,10 +42,11 @@ model ProductVariant {
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   
-  modelNumber String?  // Make optional instead of required
-  capacity    String
+  modelNumber String?
+  capacity    String?
   length      String?
   endConnection String?
+  customFields  Json?
   
   // Additional specs for table
   maxSpread   String?
@@ -48,7 +54,7 @@ model ProductVariant {
   headroom    String?
   unitWeight  String?
   
-  price       Float?
+  price       Float?   // Custom price per variant (optional)
   stock       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -68,6 +74,20 @@ model Blog {
   featured    Boolean  @default(false)
   publishedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Service {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  excerpt       String?   @db.Text
+  icon          String?   // Icon name from Lucide React
+  order         Int?      // Display order in navigation
+  contentBlocks Json?     // Block-based content
+  published     Boolean   @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Admin {

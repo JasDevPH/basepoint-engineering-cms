@@ -1,4 +1,5 @@
 // FILE: app/admin/products/[id]/edit/page.tsx
+
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
@@ -21,19 +22,30 @@ import {
   Hash,
   Table,
   AlertTriangle,
+  DollarSign,
+  Link as LinkIcon,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 interface PreviewVariant {
-  capacity: string;
+  capacity?: string;
   length?: string;
   endConnection?: string;
   modelNumber: string;
+  customFields?: Record<string, string>;
 }
 
 interface Category {
   id: string;
   name: string;
   slug: string;
+}
+
+interface CustomField {
+  id: string;
+  name: string;
+  values: string;
 }
 
 export default function EditProductPage() {
@@ -47,6 +59,7 @@ export default function EditProductPage() {
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
+  const [isSlugManual, setIsSlugManual] = useState(false);
   const [description, setDescription] = useState("");
   const [contentBlocks, setContentBlocks] = useState<ProductContentBlock[]>([]);
   const [imageUrl, setImageUrl] = useState("");
@@ -61,6 +74,9 @@ export default function EditProductPage() {
   const [lengthUnit, setLengthUnit] = useState("ft");
   const [connectionStyles, setConnectionStyles] = useState("");
 
+  // Custom fields state
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+
   const [previewVariants, setPreviewVariants] = useState<PreviewVariant[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [existingVariantsCount, setExistingVariantsCount] = useState(0);
@@ -69,6 +85,9 @@ export default function EditProductPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+
+  const [priceType, setPriceType] = useState<"base" | "variant">("base");
+  const [basePrice, setBasePrice] = useState("");
 
   useEffect(() => {
     if (productId) {
@@ -91,6 +110,52 @@ export default function EditProductPage() {
     }
   };
 
+  // Auto-generate slug from title
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  };
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+
+    if (!isSlugManual) {
+      setSlug(generateSlug(value));
+    }
+  };
+
+  const handleSlugChange = (value: string) => {
+    setIsSlugManual(true);
+    setSlug(generateSlug(value));
+  };
+
+  // Custom fields functions
+  const addCustomField = () => {
+    setCustomFields([
+      ...customFields,
+      { id: Date.now().toString(), name: "", values: "" },
+    ]);
+  };
+
+  const updateCustomField = (
+    id: string,
+    field: "name" | "values",
+    value: string
+  ) => {
+    setCustomFields(
+      customFields.map((cf) => (cf.id === id ? { ...cf, [field]: value } : cf))
+    );
+  };
+
+  const removeCustomField = (id: string) => {
+    setCustomFields(customFields.filter((cf) => cf.id !== id));
+  };
+
   const fetchProduct = async () => {
     try {
       const res = await fetch(`/api/admin/products/${productId}`);
@@ -104,6 +169,8 @@ export default function EditProductPage() {
         setImageUrl(product.imageUrl || "");
         setCategory(product.category || "");
         setCategoryOrder(product.categoryOrder?.toString() || "");
+        setPriceType(product.priceType || "base");
+        setBasePrice(product.basePrice?.toString() || "");
         setShowVariantsTable(product.showVariantsTable ?? true);
 
         if (product.contentBlocks && Array.isArray(product.contentBlocks)) {
@@ -116,6 +183,17 @@ export default function EditProductPage() {
         setLengths(product.lengths || "");
         setLengthUnit(product.lengthUnit || "ft");
         setConnectionStyles(product.connectionStyles || "");
+
+        // Load custom fields if they exist
+        if (product.customFields && Array.isArray(product.customFields)) {
+          setCustomFields(
+            product.customFields.map((cf: any, index: number) => ({
+              id: Date.now().toString() + index,
+              name: cf.name || "",
+              values: cf.values || "",
+            }))
+          );
+        }
 
         if (product.variants) {
           setExistingVariantsCount(product.variants.length);
@@ -158,15 +236,32 @@ export default function EditProductPage() {
   };
 
   const generateVariantsPreview = () => {
-    if (!capacities.trim()) {
-      alert("Please enter at least one capacity value");
+    // Check if at least one field has values
+    const hasCapacity = capacities.trim();
+    const hasLength = lengths.trim();
+    const hasConnection = connectionStyles.trim();
+    const hasCustomFields = customFields.some(
+      (cf) => cf.name.trim() && cf.values.trim()
+    );
+
+    if (!hasCapacity && !hasLength && !hasConnection && !hasCustomFields) {
+      alert(
+        "Please enter at least one specification value (capacity, length, connection style, or custom field)"
+      );
+      return;
+    }
+
+    if (!title.trim()) {
+      alert("Please enter product title first (used for model numbers)");
       return;
     }
 
     const capacityList = capacities
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean);
+      ? capacities
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [];
     const lengthList = lengths
       ? lengths
           .split(",")
@@ -180,55 +275,144 @@ export default function EditProductPage() {
           .filter(Boolean)
       : [];
 
+    // Parse custom fields
+    const customFieldsList = customFields
+      .filter((cf) => cf.name.trim() && cf.values.trim())
+      .map((cf) => ({
+        name: cf.name.trim(),
+        values: cf.values
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean),
+      }));
+
     const variants: PreviewVariant[] = [];
 
-    if (lengthList.length === 0 && connectionList.length === 0) {
-      capacityList.forEach((capacity) => {
-        variants.push({
-          capacity: `${capacity} ${capacityUnit}`,
-          modelNumber: `${title
-            .substring(0, 3)
-            .toUpperCase()}-${capacity}${capacityUnit}`,
-        });
+    // Helper function to generate all combinations recursively
+    const generateCombinations = (
+      capacity: string | null,
+      length: string | null,
+      connection: string | null,
+      customFieldsData: Array<{ name: string; value: string }>
+    ) => {
+      const customFieldsObj: Record<string, string> = {};
+      customFieldsData.forEach((cf) => {
+        customFieldsObj[cf.name] = cf.value;
       });
-    } else if (lengthList.length > 0 && connectionList.length === 0) {
-      capacityList.forEach((capacity) => {
+
+      // Build model number
+      let modelParts = [title.substring(0, 3).toUpperCase()];
+
+      if (capacity) modelParts.push(`${capacity}${capacityUnit}`);
+      if (length) modelParts.push(`${length}${lengthUnit}`);
+      if (connection) modelParts.push(connection);
+      customFieldsData.forEach((cf) => {
+        modelParts.push(cf.value);
+      });
+
+      variants.push({
+        capacity: capacity ? `${capacity} ${capacityUnit}` : undefined,
+        length: length ? `${length} ${lengthUnit}` : undefined,
+        endConnection: connection || undefined,
+        modelNumber: modelParts.join("-"),
+        customFields:
+          Object.keys(customFieldsObj).length > 0 ? customFieldsObj : undefined,
+      });
+    };
+
+    // Recursive function to handle custom fields combinations
+    const processCustomFields = (
+      capacity: string | null,
+      length: string | null,
+      connection: string | null,
+      fieldIndex: number,
+      currentCustomFields: Array<{ name: string; value: string }>
+    ) => {
+      if (fieldIndex >= customFieldsList.length) {
+        generateCombinations(capacity, length, connection, currentCustomFields);
+        return;
+      }
+
+      const field = customFieldsList[fieldIndex];
+      field.values.forEach((value) => {
+        processCustomFields(capacity, length, connection, fieldIndex + 1, [
+          ...currentCustomFields,
+          { name: field.name, value },
+        ]);
+      });
+    };
+
+    // Main generation logic
+    if (capacityList.length === 0) {
+      // No capacity specified - generate from other fields
+      if (lengthList.length === 0 && connectionList.length === 0) {
+        // Only custom fields
+        if (customFieldsList.length > 0) {
+          processCustomFields(null, null, null, 0, []);
+        }
+      } else if (lengthList.length > 0 && connectionList.length === 0) {
         lengthList.forEach((length) => {
-          variants.push({
-            capacity: `${capacity} ${capacityUnit}`,
-            length: `${length} ${lengthUnit}`,
-            modelNumber: `${title
-              .substring(0, 3)
-              .toUpperCase()}-${capacity}${capacityUnit}-${length}${lengthUnit}`,
-          });
+          if (customFieldsList.length > 0) {
+            processCustomFields(null, length, null, 0, []);
+          } else {
+            generateCombinations(null, length, null, []);
+          }
         });
-      });
-    } else if (lengthList.length === 0 && connectionList.length > 0) {
-      capacityList.forEach((capacity) => {
+      } else if (lengthList.length === 0 && connectionList.length > 0) {
         connectionList.forEach((connection) => {
-          variants.push({
-            capacity: `${capacity} ${capacityUnit}`,
-            endConnection: connection,
-            modelNumber: `${title
-              .substring(0, 3)
-              .toUpperCase()}-${capacity}${capacityUnit}-${connection}`,
-          });
+          if (customFieldsList.length > 0) {
+            processCustomFields(null, null, connection, 0, []);
+          } else {
+            generateCombinations(null, null, connection, []);
+          }
         });
-      });
-    } else {
-      capacityList.forEach((capacity) => {
+      } else {
         lengthList.forEach((length) => {
           connectionList.forEach((connection) => {
-            variants.push({
-              capacity: `${capacity} ${capacityUnit}`,
-              length: `${length} ${lengthUnit}`,
-              endConnection: connection,
-              modelNumber: `${title
-                .substring(0, 3)
-                .toUpperCase()}-${capacity}${capacityUnit}-${length}${lengthUnit}-${connection}`,
-            });
+            if (customFieldsList.length > 0) {
+              processCustomFields(null, length, connection, 0, []);
+            } else {
+              generateCombinations(null, length, connection, []);
+            }
           });
         });
+      }
+    } else {
+      // Original logic with capacity
+      capacityList.forEach((capacity) => {
+        if (lengthList.length === 0 && connectionList.length === 0) {
+          if (customFieldsList.length > 0) {
+            processCustomFields(capacity, null, null, 0, []);
+          } else {
+            generateCombinations(capacity, null, null, []);
+          }
+        } else if (lengthList.length > 0 && connectionList.length === 0) {
+          lengthList.forEach((length) => {
+            if (customFieldsList.length > 0) {
+              processCustomFields(capacity, length, null, 0, []);
+            } else {
+              generateCombinations(capacity, length, null, []);
+            }
+          });
+        } else if (lengthList.length === 0 && connectionList.length > 0) {
+          connectionList.forEach((connection) => {
+            if (customFieldsList.length > 0) {
+              processCustomFields(capacity, null, connection, 0, []);
+            } else {
+              generateCombinations(capacity, null, connection, []);
+            }
+          });
+        } else {
+          lengthList.forEach((length) => {
+            connectionList.forEach((connection) => {
+              if (customFieldsList.length > 0) {
+                processCustomFields(capacity, length, connection, 0, []);
+              } else {
+                generateCombinations(capacity, length, connection, []);
+              }
+            });
+          });
+        }
       });
     }
 
@@ -263,12 +447,18 @@ export default function EditProductPage() {
           category,
           categoryOrder: categoryOrder ? parseInt(categoryOrder) : null,
           showVariantsTable,
+          priceType,
+          basePrice:
+            priceType === "base" && basePrice ? parseFloat(basePrice) : null,
           autoGenerate,
           capacities: autoGenerate ? capacities : null,
           capacityUnit: autoGenerate ? capacityUnit : null,
           lengths: autoGenerate ? lengths : null,
           lengthUnit: autoGenerate ? lengthUnit : null,
           connectionStyles: autoGenerate ? connectionStyles : null,
+          customFields: autoGenerate
+            ? customFields.filter((cf) => cf.name.trim() && cf.values.trim())
+            : null,
         }),
       });
 
@@ -285,6 +475,17 @@ export default function EditProductPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Get all unique custom field names from preview variants
+  const getCustomFieldNames = () => {
+    const fieldNames = new Set<string>();
+    previewVariants.forEach((variant) => {
+      if (variant.customFields) {
+        Object.keys(variant.customFields).forEach((key) => fieldNames.add(key));
+      }
+    });
+    return Array.from(fieldNames);
   };
 
   if (loading) {
@@ -349,23 +550,49 @@ export default function EditProductPage() {
                   <input
                     type="text"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => handleTitleChange(e.target.value)}
                     required
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium text-sm text-gray-700">
-                    URL Slug *
+                  <label className="flex items-center gap-2 mb-2 font-medium text-sm text-gray-700">
+                    <LinkIcon className="w-4 h-4" />
+                    URL Slug *{" "}
+                    {!isSlugManual && (
+                      <span className="text-xs text-gray-500 font-normal">
+                        (auto-generated)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="text"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
+                    onChange={(e) => handleSlugChange(e.target.value)}
                     required
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none font-mono text-sm"
                   />
+                  {slug && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        <strong>Preview URL:</strong> /product-detail?slug=
+                        {slug}
+                      </p>
+                    </div>
+                  )}
+                  {isSlugManual && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSlugManual(false);
+                        setSlug(generateSlug(title));
+                      }}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Reset to auto-generate from title
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -436,6 +663,121 @@ export default function EditProductPage() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Pricing Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-[#1e3a8a]" />
+              Pricing Configuration
+            </h2>
+
+            <div className="space-y-5">
+              {/* Price Type Selection */}
+              <div>
+                <label className="block mb-3 font-medium text-sm text-gray-700">
+                  Pricing Type
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#1e3a8a] hover:bg-blue-50">
+                    <input
+                      type="radio"
+                      name="priceType"
+                      value="base"
+                      checked={priceType === "base"}
+                      onChange={(e) => setPriceType(e.target.value as "base")}
+                      className="sr-only peer"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-[#1e3a8a] peer-checked:bg-[#1e3a8a] flex items-center justify-center">
+                          {priceType === "base" && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          Base Price
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 ml-7">
+                        One price applies to all variants
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#1e3a8a] hover:bg-blue-50">
+                    <input
+                      type="radio"
+                      name="priceType"
+                      value="variant"
+                      checked={priceType === "variant"}
+                      onChange={(e) =>
+                        setPriceType(e.target.value as "variant")
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-[#1e3a8a] peer-checked:bg-[#1e3a8a] flex items-center justify-center">
+                          {priceType === "variant" && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          Per Variant Pricing
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 ml-7">
+                        Set individual prices for each variant
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Base Price Input */}
+              {priceType === "base" && (
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <label className="block mb-2 font-medium text-sm text-gray-700">
+                    Base Price (USD)
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="number"
+                      value={basePrice}
+                      onChange={(e) => setBasePrice(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    This price will apply to all product variants
+                  </p>
+                </div>
+              )}
+
+              {/* Variant Pricing Info */}
+              {priceType === "variant" && (
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        Individual Variant Pricing
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        You'll be able to set custom prices for each variant
+                        after creating the product, or manage them in the
+                        variants table.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -614,7 +956,7 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-medium text-sm text-gray-700">
-                      Capacities (comma-separated) *
+                      Capacities (optional)
                     </label>
                     <input
                       type="text"
@@ -636,6 +978,7 @@ export default function EditProductPage() {
                       <option value="tons">Tons</option>
                       <option value="lbs">Lbs</option>
                       <option value="kg">Kg</option>
+                      <option value="in">Persons</option>
                     </select>
                   </div>
                 </div>
@@ -682,6 +1025,100 @@ export default function EditProductPage() {
                   />
                 </div>
 
+                {/* Custom Fields Section */}
+                <div className="border-t border-purple-200 pt-5 mt-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        Custom Fields (optional)
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Add additional specifications like Color, Material,
+                        Finish, etc.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCustomField}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Field</span>
+                    </button>
+                  </div>
+
+                  {customFields.length > 0 && (
+                    <div className="space-y-3">
+                      {customFields.map((field) => (
+                        <div
+                          key={field.id}
+                          className="p-4 bg-white rounded-xl border border-purple-200"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block mb-2 font-medium text-xs text-gray-700">
+                                Field Name *
+                              </label>
+                              <input
+                                type="text"
+                                value={field.name}
+                                onChange={(e) =>
+                                  updateCustomField(
+                                    field.id,
+                                    "name",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="e.g., Color, Material, Finish"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block mb-2 font-medium text-xs text-gray-700">
+                                Values (comma-separated) *
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={field.values}
+                                  onChange={(e) =>
+                                    updateCustomField(
+                                      field.id,
+                                      "values",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="e.g., Red, Blue, Green"
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none text-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeCustomField(field.id)}
+                                  className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {customFields.length === 0 && (
+                    <div className="p-6 bg-white rounded-xl border-2 border-dashed border-purple-200 text-center">
+                      <Package className="w-8 h-8 text-purple-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">
+                        No custom fields added yet
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Click "Add Field" to create custom specifications
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Preview Button */}
                 <div className="pt-2">
                   <button
@@ -723,9 +1160,11 @@ export default function EditProductPage() {
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                               Model Number
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                              Capacity
-                            </th>
+                            {previewVariants.some((v) => v.capacity) && (
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                Capacity
+                              </th>
+                            )}
                             {previewVariants.some((v) => v.length) && (
                               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                                 Length
@@ -736,6 +1175,14 @@ export default function EditProductPage() {
                                 End Connection
                               </th>
                             )}
+                            {getCustomFieldNames().map((fieldName) => (
+                              <th
+                                key={fieldName}
+                                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+                              >
+                                {fieldName}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
@@ -744,9 +1191,11 @@ export default function EditProductPage() {
                               <td className="px-4 py-3 text-sm font-mono font-medium text-gray-900">
                                 {variant.modelNumber}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-700">
-                                {variant.capacity}
-                              </td>
+                              {previewVariants.some((v) => v.capacity) && (
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {variant.capacity || "—"}
+                                </td>
+                              )}
                               {previewVariants.some((v) => v.length) && (
                                 <td className="px-4 py-3 text-sm text-gray-700">
                                   {variant.length || "—"}
@@ -757,6 +1206,14 @@ export default function EditProductPage() {
                                   {variant.endConnection || "—"}
                                 </td>
                               )}
+                              {getCustomFieldNames().map((fieldName) => (
+                                <td
+                                  key={fieldName}
+                                  className="px-4 py-3 text-sm text-gray-700"
+                                >
+                                  {variant.customFields?.[fieldName] || "—"}
+                                </td>
+                              ))}
                             </tr>
                           ))}
                         </tbody>
