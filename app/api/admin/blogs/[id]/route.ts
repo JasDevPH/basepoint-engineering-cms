@@ -1,8 +1,10 @@
 // FILE: app/api/admin/blogs/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { corsHeaders } from "@/lib/cors";
 
+// GET single blog
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,10 +28,7 @@ export async function GET(
 
     return NextResponse.json(
       { success: true, data: blog },
-      {
-        status: 200,
-        headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      { headers: corsHeaders(request.headers.get("origin") || undefined) }
     );
   } catch (error) {
     console.error("Error fetching blog:", error);
@@ -43,55 +42,64 @@ export async function GET(
   }
 }
 
+// PUT update blog
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+
     const body = await request.json();
     const {
       title,
       slug,
+      excerpt,
       content,
       contentBlocks,
-      excerpt,
       imageUrl,
       author,
       publishedAt,
       featured,
     } = body;
 
+    if (!title || !slug) {
+      return NextResponse.json(
+        { success: false, error: "Title and slug are required" },
+        {
+          status: 400,
+          headers: corsHeaders(request.headers.get("origin") || undefined),
+        }
+      );
+    }
+
     const blog = await prisma.blog.update({
       where: { id },
       data: {
         title,
         slug,
-        content: content || "",
-        contentBlocks: contentBlocks || null,
         excerpt,
+        content,
+        contentBlocks: contentBlocks || null,
         imageUrl,
         author,
         publishedAt: publishedAt ? new Date(publishedAt) : undefined,
-        featured: featured !== undefined ? featured : undefined,
+        featured: featured ?? false,
       },
     });
 
     return NextResponse.json(
       { success: true, data: blog },
-      {
-        status: 200,
-        headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      { headers: corsHeaders(request.headers.get("origin") || undefined) }
     );
   } catch (error: any) {
     console.error("Error updating blog:", error);
 
-    if (error.code === "P2025") {
+    if (error.code === "P2002") {
       return NextResponse.json(
-        { success: false, error: "Blog not found" },
+        { success: false, error: "Blog with this slug already exists" },
         {
-          status: 404,
+          status: 409,
           headers: corsHeaders(request.headers.get("origin") || undefined),
         }
       );
@@ -107,6 +115,7 @@ export async function PUT(
   }
 }
 
+// DELETE blog
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -120,24 +129,10 @@ export async function DELETE(
 
     return NextResponse.json(
       { success: true, message: "Blog deleted successfully" },
-      {
-        status: 200,
-        headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      { headers: corsHeaders(request.headers.get("origin") || undefined) }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting blog:", error);
-
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { success: false, error: "Blog not found" },
-        {
-          status: 404,
-          headers: corsHeaders(request.headers.get("origin") || undefined),
-        }
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: "Failed to delete blog" },
       {
