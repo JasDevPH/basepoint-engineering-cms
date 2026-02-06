@@ -1,111 +1,136 @@
+// FILE: app/api/checkout/lemon-squeezy/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { lemonSqueezy } from "@/lib/lemonsqueezy";
+import { corsHeaders } from "@/lib/cors";
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+
   try {
     const body = await request.json();
-    const { productName, price, variantId, quantity = 1, customData } = body;
+    const { variantId, productSlug, customData } = body;
 
-    // Validate required fields
-    if (!productName || !price) {
+    console.log("=== CHECKOUT REQUEST ===");
+    console.log("Origin:", origin);
+    console.log("Variant ID:", variantId);
+    console.log("Product Slug:", productSlug);
+
+    if (!variantId) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
-        { status: 400 }
+        { success: false, error: "Variant ID is required" },
+        {
+          status: 400,
+          headers: corsHeaders(origin || undefined),
+        }
       );
     }
 
-    const apiKey = process.env.LEMON_SQUEEZY_API_KEY;
-    const storeId = process.env.LEMON_SQUEEZY_STORE_ID;
-
-    if (!apiKey || !storeId) {
-      console.error("Lemon Squeezy credentials not configured");
-      return NextResponse.json(
-        { success: false, error: "Payment system not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Create checkout session with Lemon Squeezy API
-    const checkoutData = {
-      data: {
-        type: "checkouts",
-        attributes: {
-          checkout_data: {
-            custom: customData || {
-              product_name: productName,
-              variant_id: variantId || "n/a",
-            },
-            embed: true, // Enable embed mode
-          },
-          product_options: {
-            name: productName,
-            description: `Purchase of ${productName}`,
-            // No redirect URL needed for embedded checkout
-          },
-          checkout_options: {
-            embed: true,
-            media: false,
-            logo: true,
-            desc: true,
-            discount: true,
-            button_color: "#10b981",
-          },
-        },
-        relationships: {
-          store: {
-            data: {
-              type: "stores",
-              id: storeId,
-            },
-          },
-          variant: {
-            data: {
-              type: "variants",
-              id: variantId || process.env.LEMON_SQUEEZY_VARIANT_ID,
-            },
-          },
-        },
-      },
-    };
-
-    console.log("Creating Lemon Squeezy checkout...");
-
-    const response = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
-      method: "POST",
-      headers: {
-        Accept: "application/vnd.api+json",
-        "Content-Type": "application/vnd.api+json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(checkoutData),
+    // Get variant from database
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: { product: true },
     });
 
-    const data = await response.json();
+    console.log("Variant found:", variant?.modelNumber);
+    console.log("LS Variant ID:", variant?.lemonSqueezyVariantId);
 
-    if (!response.ok) {
-      console.error("Lemon Squeezy API error:", data);
+    if (!variant) {
+      return NextResponse.json(
+        { success: false, error: "Variant not found" },
+        {
+          status: 404,
+          headers: corsHeaders(origin || undefined),
+        }
+      );
+    }
+
+    if (!variant.lemonSqueezyVariantId) {
+      console.error("❌ Variant not synced to Lemon Squeezy");
       return NextResponse.json(
         {
           success: false,
-          error: "Failed to create checkout session",
-          details: data,
+          error:
+            "This product is not configured for checkout. Please contact support.",
         },
-        { status: response.status }
+        {
+          status: 400,
+          headers: corsHeaders(origin || undefined),
+        }
       );
     }
 
-    // Return checkout URL for embedding
-    const checkoutUrl = data.data.attributes.url;
+    // Create checkout URL
+    console.log("Creating checkout URL...");
 
-    return NextResponse.json({
-      success: true,
-      checkoutUrl,
-      data: data.data,
-    });
-  } catch (error) {
-    console.error("Checkout error:", error);
+    // Prepare custom data - ONLY include non-null values
+    const cleanCustomData: Record<string, string> = {};
+
+    // Add basic variant metadata
+    cleanCustomData.productSlug = productSlug || variant.product.slug;
+    cleanCustomData.variantId = variant.id;
+    cleanCustomData.modelNumber = variant.modelNumber || "N/A";
+
+    // Only add variant fields that have actual values (not null/undefined)
+    if (variant.capacity) {
+      cleanCustomData.capacity = String(variant.capacity);
+    }
+    if (variant.length) {
+      cleanCustomData.length = String(variant.length);
+    }
+    if (variant.endConnection) {
+      cleanCustomData.endConnection = String(variant.endConnection);
+    }
+
+    // Add product info
+    cleanCustomData.productTitle = variant.product.title;
+
+    // Add price
+    const price = variant.price || variant.product.basePrice;
+    if (price) {
+      cleanCustomData.price = String(price);
+    }
+
+    console.log("Clean custom data:", cleanCustomData);
+
+    const checkoutUrl = await lemonSqueezy.getCheckoutUrl(
+      variant.lemonSqueezyVariantId,
+      cleanCustomData
+    );
+
+    console.log("✓ Checkout URL created:", checkoutUrl);
+
     return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
+      {
+        success: true,
+        checkoutUrl,
+        product: {
+          title: variant.product.title,
+          variant: variant.modelNumber,
+          price: price,
+        },
+      },
+      { headers: corsHeaders(origin || undefined) }
+    );
+  } catch (error: any) {
+    console.error("❌ Checkout creation error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to create checkout" },
+      {
+        status: 500,
+        headers: corsHeaders(origin || undefined),
+      }
     );
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  console.log("OPTIONS request from:", origin);
+
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(origin || undefined),
+  });
 }

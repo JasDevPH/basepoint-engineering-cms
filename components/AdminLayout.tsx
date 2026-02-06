@@ -9,6 +9,7 @@ import {
   Package,
   FileText,
   Briefcase,
+  ShoppingCart,
   LogOut,
   Menu,
   X,
@@ -69,6 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Products", path: "/admin/products", icon: Package },
     { label: "Blogs", path: "/admin/blogs", icon: FileText },
     { label: "Services", path: "/admin/services", icon: Briefcase },
+    { label: "Orders", path: "/admin/orders", icon: ShoppingCart }, // 🆕 ADDED
   ];
 
   // Check if path is active

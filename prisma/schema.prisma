@@ -1,4 +1,5 @@
 // FILE: prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -34,7 +35,17 @@ model Product {
   connectionStyles String?
   customFields      Json? 
   
+  // 🆕 STRIPE PAYMENT INTEGRATION
+  stripePaymentLink String?        // Stripe payment link URL
+  
+  // LEMON SQUEEZY INTEGRATION
+  lemonSqueezyProductId   String?  @unique
+  lemonSqueezyStoreId     String?
+  lemonSqueezyStatus      String?  @default("draft") // draft, published
+  syncedAt                DateTime?
+  
   variants        ProductVariant[]
+  orders          Order[]
 }
 
 model ProductVariant {
@@ -58,6 +69,13 @@ model ProductVariant {
   stock       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // LEMON SQUEEZY INTEGRATION
+  lemonSqueezyVariantId   String?  @unique
+  lemonSqueezyPrice       Int?     // Price in cents
+  syncedAt                DateTime?
+  
+  orders      OrderItem[]
   
   @@index([productId])
 }
@@ -108,4 +126,71 @@ model Category {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  orderNumber           String      @unique
+
+  // Customer info
+  customerEmail         String
+  customerName          String?
+
+  // Product reference (optional - may not be linked for external orders)
+  productId             String?
+  product               Product?    @relation(fields: [productId], references: [id])
+
+  // Payment provider data (one of these will be set)
+  lemonSqueezyOrderId   String?     @unique
+  lemonSqueezyCustomerId String?
+  stripeSessionId       String?     @unique  // Stripe Checkout Session ID
+  stripePaymentIntentId String?     @unique  // Stripe Payment Intent ID
+  stripeCustomerId      String?              // Stripe Customer ID
+
+  // Payment source identifier
+  paymentProvider       String      @default("lemonsqueezy") // "lemonsqueezy" or "stripe"
+
+  // Order details
+  status                String      @default("pending") // pending, paid, processing, delivered, refunded, failed
+  totalAmount           Float       // Total in dollars
+  currency              String      @default("USD")
+
+  // Timestamps
+  paidAt                DateTime?
+  deliveredAt           DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Order items (products/variants purchased)
+  items                 OrderItem[]
+
+  // Custom data from webhook
+  metadata              Json?
+
+  @@index([customerEmail])
+  @@index([status])
+  @@index([lemonSqueezyOrderId])
+  @@index([stripeSessionId])
+  @@index([paymentProvider])
+}
+
+model OrderItem {
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Product variant reference
+  variantId       String?
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+  
+  // Snapshot of product at time of purchase
+  productName     String
+  variantName     String?
+  price           Float
+  quantity        Int             @default(1)
+  
+  createdAt       DateTime        @default(now())
+  
+  @@index([orderId])
+  @@index([variantId])
 }

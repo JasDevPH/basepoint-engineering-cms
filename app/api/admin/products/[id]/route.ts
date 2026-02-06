@@ -36,7 +36,6 @@ function generateVariants(
         .filter(Boolean)
     : [];
 
-  // Parse custom fields
   const customFieldsList =
     customFields && Array.isArray(customFields)
       ? customFields
@@ -52,20 +51,17 @@ function generateVariants(
 
   const variants: any[] = [];
 
-  // Helper function to generate combinations recursively
   const generateCombinations = (
     capacity: string | null,
     length: string | null,
     connection: string | null,
     customFieldsData: Array<{ name: string; value: string }>
   ) => {
-    // Build custom fields object
     const customFieldsObj: Record<string, string> = {};
     customFieldsData.forEach((cf) => {
       customFieldsObj[cf.name] = cf.value;
     });
 
-    // Build model number
     let modelParts = [productTitle.substring(0, 3).toUpperCase()];
 
     if (capacity) modelParts.push(`${capacity}${capacityUnit}`);
@@ -87,7 +83,6 @@ function generateVariants(
     });
   };
 
-  // Recursive function to handle custom fields combinations
   const processCustomFields = (
     capacity: string | null,
     length: string | null,
@@ -109,11 +104,8 @@ function generateVariants(
     });
   };
 
-  // Main generation logic
   if (capacityList.length === 0) {
-    // No capacity specified - generate from other fields
     if (lengthList.length === 0 && connectionList.length === 0) {
-      // Only custom fields
       if (customFieldsList.length > 0) {
         processCustomFields(null, null, null, 0, []);
       }
@@ -145,7 +137,6 @@ function generateVariants(
       });
     }
   } else {
-    // Original logic with capacity
     capacityList.forEach((capacity) => {
       if (lengthList.length === 0 && connectionList.length === 0) {
         if (customFieldsList.length > 0) {
@@ -254,6 +245,8 @@ export async function PUT(
       lengthUnit,
       connectionStyles,
       customFields,
+      lemonSqueezyProductId,
+      stripePaymentLink, // 🆕 ADD
     } = body;
 
     if (!title || !slug) {
@@ -266,7 +259,22 @@ export async function PUT(
       );
     }
 
-    // Update product
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { variants: true },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { success: false, error: "Product not found" },
+        {
+          status: 404,
+          headers: corsHeaders(request.headers.get("origin") || undefined),
+        }
+      );
+    }
+
+    // Update product in database
     const product = await prisma.product.update({
       where: { id },
       data: {
@@ -287,10 +295,19 @@ export async function PUT(
         lengthUnit,
         connectionStyles,
         customFields: customFields || null,
+        lemonSqueezyProductId: lemonSqueezyProductId || null,
+        lemonSqueezyStoreId: lemonSqueezyProductId
+          ? process.env.LEMONSQUEEZY_STORE_ID
+          : existingProduct.lemonSqueezyStoreId,
+        lemonSqueezyStatus: lemonSqueezyProductId
+          ? "published"
+          : existingProduct.lemonSqueezyStatus,
+        syncedAt: lemonSqueezyProductId ? new Date() : existingProduct.syncedAt,
+        stripePaymentLink: stripePaymentLink || null, // 🆕 ADD
       },
     });
 
-    // Regenerate variants if autoGenerate is enabled and at least one field has values
+    // Regenerate variants if autoGenerate is enabled
     if (autoGenerate) {
       const hasAnyField =
         (capacities && capacities.trim()) ||
@@ -301,7 +318,17 @@ export async function PUT(
           customFields.some((cf: any) => cf.name?.trim() && cf.values?.trim()));
 
       if (hasAnyField) {
-        // Delete existing variants
+        // SAVE EXISTING PRICES BEFORE DELETE
+        const existingVariants = await prisma.productVariant.findMany({
+          where: { productId: id },
+          select: { modelNumber: true, price: true },
+        });
+
+        const priceMap = new Map(
+          existingVariants.map((v) => [v.modelNumber, v.price])
+        );
+
+        // Delete existing variants from database
         await prisma.productVariant.deleteMany({
           where: { productId: id },
         });
@@ -321,11 +348,59 @@ export async function PUT(
         );
 
         if (variantsToCreate.length > 0) {
-          await prisma.productVariant.createMany({
-            data: variantsToCreate,
+          // RESTORE PRICES FROM OLD VARIANTS WHERE POSSIBLE
+          const variantsWithRestoredPrices = variantsToCreate.map((variant) => {
+            const existingPrice = priceMap.get(variant.modelNumber);
+            return {
+              ...variant,
+              price:
+                existingPrice !== undefined ? existingPrice : variant.price,
+            };
           });
+
+          await prisma.productVariant.createMany({
+            data: variantsWithRestoredPrices,
+          });
+
           console.log(
-            `✓ Regenerated ${variantsToCreate.length} variants for product: ${title}`
+            `✓ Regenerated ${variantsWithRestoredPrices.length} variants in database`
+          );
+          console.log(
+            `✓ Restored prices for ${
+              Array.from(priceMap.keys()).filter((mn) =>
+                variantsWithRestoredPrices.some((v) => v.modelNumber === mn)
+              ).length
+            } matching variants`
+          );
+
+          if (product.lemonSqueezyProductId) {
+            console.log(
+              "⚠ Variants regenerated in CMS. Use 'Sync Variants' button to link with Lemon Squeezy variants."
+            );
+          }
+        }
+      }
+    } else {
+      // Just update prices in database
+      if (priceType === "base" && basePrice) {
+        const variants = await prisma.productVariant.findMany({
+          where: { productId: id },
+        });
+
+        for (const variant of variants) {
+          await prisma.productVariant.update({
+            where: { id: variant.id },
+            data: {
+              price: parseFloat(basePrice),
+            },
+          });
+        }
+
+        console.log(`✓ Updated ${variants.length} variant prices in database`);
+
+        if (product.lemonSqueezyProductId) {
+          console.log(
+            "⚠ Prices updated in CMS. Use 'Sync Variants' button to sync prices with Lemon Squeezy."
           );
         }
       }
@@ -374,9 +449,32 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { variants: true },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { success: false, error: "Product not found" },
+        {
+          status: 404,
+          headers: corsHeaders(request.headers.get("origin") || undefined),
+        }
+      );
+    }
+
+    // Just delete from database
+    // Note: Variants in LS must be deleted manually from LS dashboard
     await prisma.product.delete({
       where: { id },
     });
+
+    if (product.lemonSqueezyProductId) {
+      console.log(
+        "⚠ Product deleted from CMS. Please manually delete variants from Lemon Squeezy dashboard if needed."
+      );
+    }
 
     return NextResponse.json(
       { success: true, message: "Product deleted successfully" },

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import ProductBlockEditor, {
@@ -21,11 +21,15 @@ import {
   FolderOpen,
   Hash,
   Table,
+  AlertTriangle,
   DollarSign,
   Link as LinkIcon,
   Plus,
   Trash2,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
+import { useEffect } from "react";
 
 interface PreviewVariant {
   capacity?: string;
@@ -47,9 +51,19 @@ interface CustomField {
   values: string;
 }
 
+interface LemonSqueezyProduct {
+  id: string;
+  attributes: {
+    name: string;
+    description: string;
+    status: string;
+  };
+}
+
 export default function NewProductPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const [title, setTitle] = useState("");
@@ -68,8 +82,6 @@ export default function NewProductPage() {
   const [lengths, setLengths] = useState("");
   const [lengthUnit, setLengthUnit] = useState("ft");
   const [connectionStyles, setConnectionStyles] = useState("");
-
-  // Custom fields state
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
   const [previewVariants, setPreviewVariants] = useState<PreviewVariant[]>([]);
@@ -83,8 +95,16 @@ export default function NewProductPage() {
   const [priceType, setPriceType] = useState<"base" | "variant">("base");
   const [basePrice, setBasePrice] = useState("");
 
+  // 🆕 Lemon Squeezy State
+  const [lemonSqueezyProducts, setLemonSqueezyProducts] = useState<
+    LemonSqueezyProduct[]
+  >([]);
+  const [loadingLSProducts, setLoadingLSProducts] = useState(false);
+  const [selectedLSProductId, setSelectedLSProductId] = useState("");
+
   useEffect(() => {
     fetchCategories();
+    fetchLemonSqueezyProducts();
   }, []);
 
   const fetchCategories = async () => {
@@ -101,7 +121,23 @@ export default function NewProductPage() {
     }
   };
 
-  // Auto-generate slug from title
+  const fetchLemonSqueezyProducts = async () => {
+    setLoadingLSProducts(true);
+    try {
+      const res = await fetch("/api/admin/lemonsqueezy/products");
+      const data = await res.json();
+      if (data.success) {
+        setLemonSqueezyProducts(data.data);
+      } else {
+        console.error("Failed to fetch LS products:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching LS products:", error);
+    } finally {
+      setLoadingLSProducts(false);
+    }
+  };
+
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
@@ -114,7 +150,6 @@ export default function NewProductPage() {
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-
     if (!isSlugManual) {
       setSlug(generateSlug(value));
     }
@@ -125,7 +160,6 @@ export default function NewProductPage() {
     setSlug(generateSlug(value));
   };
 
-  // Custom fields functions
   const addCustomField = () => {
     setCustomFields([
       ...customFields,
@@ -172,7 +206,6 @@ export default function NewProductPage() {
   };
 
   const generateVariantsPreview = () => {
-    // Check if at least one field has values
     const hasCapacity = capacities.trim();
     const hasLength = lengths.trim();
     const hasConnection = connectionStyles.trim();
@@ -211,7 +244,6 @@ export default function NewProductPage() {
           .filter(Boolean)
       : [];
 
-    // Parse custom fields
     const customFieldsList = customFields
       .filter((cf) => cf.name.trim() && cf.values.trim())
       .map((cf) => ({
@@ -224,7 +256,6 @@ export default function NewProductPage() {
 
     const variants: PreviewVariant[] = [];
 
-    // Helper function to generate all combinations recursively
     const generateCombinations = (
       capacity: string | null,
       length: string | null,
@@ -236,9 +267,7 @@ export default function NewProductPage() {
         customFieldsObj[cf.name] = cf.value;
       });
 
-      // Build model number
       let modelParts = [title.substring(0, 3).toUpperCase()];
-
       if (capacity) modelParts.push(`${capacity}${capacityUnit}`);
       if (length) modelParts.push(`${length}${lengthUnit}`);
       if (connection) modelParts.push(connection);
@@ -256,7 +285,6 @@ export default function NewProductPage() {
       });
     };
 
-    // Recursive function to handle custom fields combinations
     const processCustomFields = (
       capacity: string | null,
       length: string | null,
@@ -278,11 +306,8 @@ export default function NewProductPage() {
       });
     };
 
-    // Main generation logic
     if (capacityList.length === 0) {
-      // No capacity specified - generate from other fields
       if (lengthList.length === 0 && connectionList.length === 0) {
-        // Only custom fields
         if (customFieldsList.length > 0) {
           processCustomFields(null, null, null, 0, []);
         }
@@ -314,7 +339,6 @@ export default function NewProductPage() {
         });
       }
     } else {
-      // Original logic with capacity
       capacityList.forEach((capacity) => {
         if (lengthList.length === 0 && connectionList.length === 0) {
           if (customFieldsList.length > 0) {
@@ -359,7 +383,7 @@ export default function NewProductPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSaving(true);
 
     const plainDescription = contentBlocks
       .map((block) => {
@@ -395,6 +419,7 @@ export default function NewProductPage() {
           customFields: autoGenerate
             ? customFields.filter((cf) => cf.name.trim() && cf.values.trim())
             : null,
+          lemonSqueezyProductId: selectedLSProductId || null,
         }),
       });
 
@@ -407,13 +432,13 @@ export default function NewProductPage() {
         setError(data.error || "Failed to create product");
       }
     } catch (err) {
+      console.error("Submit error:", err);
       setError("An error occurred. Please try again.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Get all unique custom field names from preview variants
   const getCustomFieldNames = () => {
     const fieldNames = new Set<string>();
     previewVariants.forEach((variant) => {
@@ -427,10 +452,9 @@ export default function NewProductPage() {
   return (
     <AdminLayout>
       <div className="max-w-5xl">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#00bcd4] rounded-xl flex items-center justify-center">
               <Package className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -441,13 +465,124 @@ export default function NewProductPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Error Message */}
           {error && (
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
               <Info className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
+
+          {/* 🆕 Lemon Squeezy Integration Card */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border-2 border-yellow-200 p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Zap className="w-6 h-6 text-yellow-900" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  Lemon Squeezy Integration
+                  <span className="px-2 py-1 bg-yellow-200 text-yellow-800 text-xs font-semibold rounded-full">
+                    Optional
+                  </span>
+                </h2>
+                <p className="text-sm text-gray-700 mb-4">
+                  Link this product to an existing Lemon Squeezy product to
+                  enable checkout and payment processing.{" "}
+                  <strong>Create the product in Lemon Squeezy first</strong>,
+                  then select it here.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Select Lemon Squeezy Product
+                </label>
+                {loadingLSProducts ? (
+                  <div className="flex items-center gap-2 p-4 bg-white rounded-xl border border-yellow-300">
+                    <Loader2 className="w-5 h-5 animate-spin text-yellow-600" />
+                    <span className="text-sm text-gray-600">
+                      Loading products from Lemon Squeezy...
+                    </span>
+                  </div>
+                ) : lemonSqueezyProducts.length === 0 ? (
+                  <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          No Lemon Squeezy products found
+                        </p>
+                        <p className="text-sm text-gray-700 mb-3">
+                          Create a product in your Lemon Squeezy dashboard
+                          first, then refresh this page.
+                        </p>
+                        <a
+                          href="https://app.lemonsqueezy.com/products"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-lg transition-colors text-sm font-medium"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span>Open Lemon Squeezy Dashboard</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      value={selectedLSProductId}
+                      onChange={(e) => setSelectedLSProductId(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-yellow-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all outline-none bg-white appearance-none"
+                    >
+                      <option value="">None (Skip Payment Integration)</option>
+                      {lemonSqueezyProducts.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.attributes.name} (ID: {product.id}) -{" "}
+                          {product.attributes.status}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedLSProductId && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-800 font-medium mb-1">
+                          ✓ Product will be linked to Lemon Squeezy
+                        </p>
+                        <p className="text-xs text-green-700">
+                          After creating the product, use the "Sync Variants"
+                          button to link variants.
+                        </p>
+                      </div>
+                    )}
+                    {!selectedLSProductId && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          No payment integration active. Select a product to
+                          enable checkout.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-white/50 rounded-lg border border-yellow-200">
+                <Info className="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-700">
+                  <p className="font-semibold mb-1">Workflow:</p>
+                  <ol className="list-decimal list-inside space-y-0.5">
+                    <li>Create product in Lemon Squeezy dashboard</li>
+                    <li>Create variants in LS with matching model numbers</li>
+                    <li>Select the LS product above</li>
+                    <li>Save this product</li>
+                    <li>Use "Sync Variants" to link and sync prices</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Basic Information Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -467,7 +602,6 @@ export default function NewProductPage() {
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
                     required
-                    placeholder="e.g., Adjustable Reverse Jib"
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none"
                   />
                 </div>
@@ -487,7 +621,6 @@ export default function NewProductPage() {
                     value={slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
                     required
-                    placeholder="adjustable-reverse-jib"
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none font-mono text-sm"
                   />
                   {slug && (
@@ -577,7 +710,6 @@ export default function NewProductPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  placeholder="Brief product overview (optional - will auto-generate from content if empty)"
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
                 />
               </div>
@@ -848,7 +980,7 @@ export default function NewProductPage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Automatically create product variants from specifications
+                  Automatically generate product variants from specifications
                 </p>
               </div>
             </label>
@@ -1138,10 +1270,10 @@ export default function NewProductPage() {
           <div className="flex gap-4 pt-4">
             <button
               type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-8 py-3 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              disabled={saving}
+              className="flex items-center gap-2 px-8 py-3 bg-[#00bcd4] hover:bg-[#00acc1] text-white rounded-xl shadow-lg shadow-[#00bcd4]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? (
+              {saving ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Creating...</span>

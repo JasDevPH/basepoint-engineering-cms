@@ -1,9 +1,10 @@
 // FILE: app/api/admin/products/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { corsHeaders } from "@/lib/cors";
 
-// Helper function to generate variants with custom fields support and optional capacity
+// Helper function to generate variants
 function generateVariants(
   productId: string,
   capacities: string | null,
@@ -14,7 +15,7 @@ function generateVariants(
   customFields: any[] | null,
   productTitle: string,
   priceType: string,
-  basePrice: number | null
+  basePrice: number | null,
 ) {
   const capacityList = capacities
     ? capacities
@@ -35,7 +36,6 @@ function generateVariants(
         .filter(Boolean)
     : [];
 
-  // Parse custom fields
   const customFieldsList =
     customFields && Array.isArray(customFields)
       ? customFields
@@ -51,22 +51,18 @@ function generateVariants(
 
   const variants: any[] = [];
 
-  // Helper function to generate combinations recursively
   const generateCombinations = (
     capacity: string | null,
     length: string | null,
     connection: string | null,
-    customFieldsData: Array<{ name: string; value: string }>
+    customFieldsData: Array<{ name: string; value: string }>,
   ) => {
-    // Build custom fields object
     const customFieldsObj: Record<string, string> = {};
     customFieldsData.forEach((cf) => {
       customFieldsObj[cf.name] = cf.value;
     });
 
-    // Build model number
     let modelParts = [productTitle.substring(0, 3).toUpperCase()];
-
     if (capacity) modelParts.push(`${capacity}${capacityUnit}`);
     if (length) modelParts.push(`${length}${lengthUnit}`);
     if (connection) modelParts.push(connection);
@@ -86,13 +82,12 @@ function generateVariants(
     });
   };
 
-  // Recursive function to handle custom fields combinations
   const processCustomFields = (
     capacity: string | null,
     length: string | null,
     connection: string | null,
     fieldIndex: number,
-    currentCustomFields: Array<{ name: string; value: string }>
+    currentCustomFields: Array<{ name: string; value: string }>,
   ) => {
     if (fieldIndex >= customFieldsList.length) {
       generateCombinations(capacity, length, connection, currentCustomFields);
@@ -108,11 +103,8 @@ function generateVariants(
     });
   };
 
-  // Main generation logic
   if (capacityList.length === 0) {
-    // No capacity specified - generate from other fields
     if (lengthList.length === 0 && connectionList.length === 0) {
-      // Only custom fields
       if (customFieldsList.length > 0) {
         processCustomFields(null, null, null, 0, []);
       }
@@ -144,7 +136,6 @@ function generateVariants(
       });
     }
   } else {
-    // Original logic with capacity
     capacityList.forEach((capacity) => {
       if (lengthList.length === 0 && connectionList.length === 0) {
         if (customFieldsList.length > 0) {
@@ -206,6 +197,8 @@ export async function POST(request: NextRequest) {
       lengthUnit,
       connectionStyles,
       customFields,
+      lemonSqueezyProductId,
+      stripePaymentLink, // 🆕 ADD
     } = body;
 
     if (!title || !slug) {
@@ -214,11 +207,10 @@ export async function POST(request: NextRequest) {
         {
           status: 400,
           headers: corsHeaders(request.headers.get("origin") || undefined),
-        }
+        },
       );
     }
 
-    // Create product
     const product = await prisma.product.create({
       data: {
         title,
@@ -238,10 +230,16 @@ export async function POST(request: NextRequest) {
         lengthUnit,
         connectionStyles,
         customFields: customFields || null,
+        lemonSqueezyProductId: lemonSqueezyProductId || null,
+        lemonSqueezyStoreId: lemonSqueezyProductId
+          ? process.env.LEMONSQUEEZY_STORE_ID
+          : null,
+        lemonSqueezyStatus: lemonSqueezyProductId ? "published" : "draft",
+        syncedAt: lemonSqueezyProductId ? new Date() : null,
+        stripePaymentLink: stripePaymentLink || null, // 🆕 ADD
       },
     });
 
-    // Auto-generate variants if enabled and at least one field has values
     if (autoGenerate) {
       const hasAnyField =
         (capacities && capacities.trim()) ||
@@ -262,26 +260,30 @@ export async function POST(request: NextRequest) {
           customFields,
           title,
           priceType || "base",
-          basePrice ? parseFloat(basePrice) : null
+          basePrice ? parseFloat(basePrice) : null,
         );
 
         if (variantsToCreate.length > 0) {
           await prisma.productVariant.createMany({
             data: variantsToCreate,
           });
+
           console.log(
-            `✓ Created ${variantsToCreate.length} variants for product: ${title}`
+            `✓ Created ${variantsToCreate.length} variants in database`,
           );
+
+          if (lemonSqueezyProductId) {
+            console.log(
+              "⚠ Use 'Sync Variants' button to link variants with Lemon Squeezy",
+            );
+          }
         }
       }
     }
 
-    // Fetch product with variants to return
     const productWithVariants = await prisma.product.findUnique({
       where: { id: product.id },
-      include: {
-        variants: true,
-      },
+      include: { variants: true },
     });
 
     return NextResponse.json(
@@ -289,7 +291,7 @@ export async function POST(request: NextRequest) {
       {
         status: 201,
         headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      },
     );
   } catch (error: any) {
     console.error("Error creating product:", error);
@@ -300,7 +302,7 @@ export async function POST(request: NextRequest) {
         {
           status: 409,
           headers: corsHeaders(request.headers.get("origin") || undefined),
-        }
+        },
       );
     }
 
@@ -309,7 +311,7 @@ export async function POST(request: NextRequest) {
       {
         status: 500,
         headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      },
     );
   }
 }
@@ -317,15 +319,13 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const products = await prisma.product.findMany({
-      include: {
-        variants: true,
-      },
+      include: { variants: true },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(
       { success: true, data: products },
-      { headers: corsHeaders(request.headers.get("origin") || undefined) }
+      { headers: corsHeaders(request.headers.get("origin") || undefined) },
     );
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -334,7 +334,7 @@ export async function GET(request: NextRequest) {
       {
         status: 500,
         headers: corsHeaders(request.headers.get("origin") || undefined),
-      }
+      },
     );
   }
 }
@@ -342,6 +342,6 @@ export async function GET(request: NextRequest) {
 export async function OPTIONS(request: NextRequest) {
   return NextResponse.json(
     {},
-    { headers: corsHeaders(request.headers.get("origin") || undefined) }
+    { headers: corsHeaders(request.headers.get("origin") || undefined) },
   );
 }
