@@ -201,11 +201,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         metadata: {
           stripeSession: {
             id: session.id,
-            payment_link: session.payment_link,
-            payment_intent: session.payment_intent,
-            customer: session.customer,
+            payment_link: typeof session.payment_link === 'string' ? session.payment_link : session.payment_link?.id || null,
+            payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+            customer: typeof session.customer === 'string' ? session.customer : session.customer?.id || null,
           },
-          sessionMetadata: session.metadata,
+          sessionMetadata: session.metadata || {},
         },
       },
     });
