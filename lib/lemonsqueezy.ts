@@ -1,42 +1,50 @@
 // FILE: lib/lemonsqueezy.ts
 
 class LemonSqueezyService {
-  private apiKey: string;
-  private storeId: string;
+  private apiKey: string | null = null;
+  private storeId: string | null = null;
   private baseUrl = "https://api.lemonsqueezy.com/v1";
+  private initialized = false;
 
   constructor() {
+    // Defer initialization to avoid build-time errors
+    this.lazyInit();
+  }
+
+  private lazyInit() {
+    if (this.initialized) return;
+
     const apiKey = process.env.LEMONSQUEEZY_API_KEY;
     const storeId = process.env.LEMONSQUEEZY_STORE_ID;
 
-    if (!apiKey || !storeId) {
-      console.error("Missing Lemon Squeezy credentials:");
-      console.error("- API Key:", apiKey ? "✓ Present" : "✗ Missing");
-      console.error("- Store ID:", storeId ? "✓ Present" : "✗ Missing");
+    if (apiKey && storeId) {
+      this.apiKey = apiKey;
+      this.storeId = storeId;
+      this.initialized = true;
+      console.log("✓ Lemon Squeezy Service initialized");
+    }
+  }
+
+  private ensureInitialized() {
+    this.lazyInit();
+    if (!this.apiKey || !this.storeId) {
       throw new Error(
-        "Lemon Squeezy credentials not configured. Check LEMONSQUEEZY_API_KEY and LEMONSQUEEZY_STORE_ID in .env.local"
+        "Lemon Squeezy credentials not configured. Check LEMONSQUEEZY_API_KEY and LEMONSQUEEZY_STORE_ID in environment variables."
       );
     }
+  }
 
-    if (!apiKey.startsWith("eyJ")) {
-      console.error(
-        "Invalid API key format. Key should start with 'eyJ' (JWT token)"
-      );
-      throw new Error("Invalid Lemon Squeezy API key format");
-    }
-
-    this.apiKey = apiKey;
-    this.storeId = storeId;
-
-    console.log("✓ Lemon Squeezy Service initialized");
-    console.log("  - Store ID:", storeId);
-    console.log("  - API Key:", apiKey.substring(0, 20) + "...");
+  isConfigured(): boolean {
+    this.lazyInit();
+    return !!(this.apiKey && this.storeId);
   }
 
   private async makeRequest(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<any> {
+    this.ensureInitialized();
+
     const url = `${this.baseUrl}${endpoint}`;
 
     console.log(`Making request to: ${url}`);

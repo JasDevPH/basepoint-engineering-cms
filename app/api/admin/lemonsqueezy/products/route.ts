@@ -7,6 +7,18 @@ import { corsHeaders } from "@/lib/cors";
 // Get all Lemon Squeezy products
 export async function GET(request: NextRequest) {
   try {
+    // Check if LemonSqueezy is configured
+    if (!lemonSqueezy.isConfigured()) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: [],
+          message: "Lemon Squeezy is not configured",
+        },
+        { headers: corsHeaders(request.headers.get("origin") || undefined) }
+      );
+    }
+
     const products = await lemonSqueezy.getProducts();
 
     return NextResponse.json(
