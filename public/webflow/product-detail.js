@@ -333,27 +333,62 @@ async function handleSimplePurchase(productTitle, price) {
     purchaseBtn.innerHTML = "⏳ Processing...";
   }
 
-  // Check if Stripe Payment Link is available - use it directly
+  // Check if Stripe is configured - use Stripe Checkout API
   if (currentProductStripePaymentLink) {
-    console.log("✓ Using Stripe Payment Link:", currentProductStripePaymentLink);
+    console.log("✓ Using Stripe Checkout API for simple product");
 
-    const checkoutWindow = window.open(currentProductStripePaymentLink, "_blank");
+    try {
+      const response = await fetch(`${API_URL}/api/checkout/stripe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productSlug: getSlugFromURL(),
+          customData: {
+            product_title: productTitle,
+            product_type: "simple",
+          },
+        }),
+      });
 
-    if (
-      !checkoutWindow ||
-      checkoutWindow.closed ||
-      typeof checkoutWindow.closed === "undefined"
-    ) {
-      alert(
-        "Popup blocked! Please allow popups for this site and try again."
-      );
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        console.log("✓ Stripe Checkout URL received:", data.checkoutUrl);
+
+        const checkoutWindow = window.open(data.checkoutUrl, "_blank");
+
+        if (
+          !checkoutWindow ||
+          checkoutWindow.closed ||
+          typeof checkoutWindow.closed === "undefined"
+        ) {
+          alert(
+            "Popup blocked! Please allow popups for this site and try again."
+          );
+        }
+      } else {
+        console.error("Stripe Checkout failed:", data);
+        alert(
+          "Failed to create checkout: " + (data.error || "Please try again.")
+        );
+      }
+
+      if (purchaseBtn) {
+        purchaseBtn.disabled = false;
+        purchaseBtn.innerHTML = originalText;
+      }
+      return;
+    } catch (error) {
+      console.error("Stripe Checkout error:", error);
+      alert("An error occurred. Please try again.");
+      if (purchaseBtn) {
+        purchaseBtn.disabled = false;
+        purchaseBtn.innerHTML = originalText;
+      }
+      return;
     }
-
-    if (purchaseBtn) {
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-    }
-    return;
   }
 
   // Fallback to Lemon Squeezy checkout
@@ -809,25 +844,63 @@ async function handlePurchase() {
   purchaseBtn.disabled = true;
   purchaseBtn.innerHTML = "⏳ Processing...";
 
-  // Check if Stripe Payment Link is available - use it directly
+  // Check if Stripe is configured - use Stripe Checkout API
   if (currentProductStripePaymentLink) {
-    console.log("✓ Using Stripe Payment Link:", currentProductStripePaymentLink);
+    console.log("✓ Using Stripe Checkout API for variant:", selectedVariant.modelNumber);
 
-    const checkoutWindow = window.open(currentProductStripePaymentLink, "_blank");
+    try {
+      const response = await fetch(`${API_URL}/api/checkout/stripe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variantId: selectedVariant.id,
+          productSlug: getSlugFromURL(),
+          customData: {
+            model_number: selectedVariant.modelNumber,
+            capacity: selectedVariant.capacity,
+            length: selectedVariant.length || null,
+            end_connection: selectedVariant.endConnection || null,
+            variant_id: selectedVariant.id,
+            custom_fields: selectedVariant.customFields || null,
+          },
+        }),
+      });
 
-    if (
-      !checkoutWindow ||
-      checkoutWindow.closed ||
-      typeof checkoutWindow.closed === "undefined"
-    ) {
-      alert(
-        "Popup blocked! Please allow popups for this site and try again."
-      );
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        console.log("✓ Stripe Checkout URL received:", data.checkoutUrl);
+
+        const checkoutWindow = window.open(data.checkoutUrl, "_blank");
+
+        if (
+          !checkoutWindow ||
+          checkoutWindow.closed ||
+          typeof checkoutWindow.closed === "undefined"
+        ) {
+          alert(
+            "Popup blocked! Please allow popups for this site and try again."
+          );
+        }
+      } else {
+        console.error("Stripe Checkout failed:", data);
+        alert(
+          "Failed to create checkout: " + (data.error || "Please try again.")
+        );
+      }
+
+      purchaseBtn.disabled = false;
+      purchaseBtn.innerHTML = originalText;
+      return;
+    } catch (error) {
+      console.error("Stripe Checkout error:", error);
+      alert("An error occurred. Please try again.");
+      purchaseBtn.disabled = false;
+      purchaseBtn.innerHTML = originalText;
+      return;
     }
-
-    purchaseBtn.disabled = false;
-    purchaseBtn.innerHTML = originalText;
-    return;
   }
 
   // Fallback to Lemon Squeezy checkout

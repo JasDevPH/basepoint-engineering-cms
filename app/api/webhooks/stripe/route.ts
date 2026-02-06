@@ -174,9 +174,34 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     if (!product) {
       console.log("⚠️ No matching product found in CMS - creating order without product link");
-      // For orders without a matching product, we need to handle this differently
-      // We'll create a generic order record
     }
+
+    // Try to find the variant from metadata
+    let variant = null;
+    let variantName = session.metadata?.variant_name || session.metadata?.model_number || null;
+
+    if (session.metadata?.variant_id) {
+      console.log("🔍 Looking for variant with ID:", session.metadata.variant_id);
+      variant = await prisma.productVariant.findUnique({
+        where: { id: session.metadata.variant_id },
+      });
+      if (variant) {
+        console.log("✅ Variant found:", variant.modelNumber);
+        variantName = variant.modelNumber;
+      }
+    }
+
+    // Build variant description from metadata
+    const variantDetails = [];
+    if (session.metadata?.capacity) variantDetails.push(session.metadata.capacity);
+    if (session.metadata?.length) variantDetails.push(session.metadata.length);
+    if (session.metadata?.end_connection) variantDetails.push(session.metadata.end_connection);
+
+    if (variantDetails.length > 0 && !variantName) {
+      variantName = variantDetails.join(", ");
+    }
+
+    console.log("📦 Variant Name:", variantName);
 
     // Generate order number
     const orderNumber = `STR-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
@@ -213,31 +238,18 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.log("✅ Order created with ID:", order.id);
     console.log("📋 Order Number:", orderNumber);
 
-    // Create order item
-    if (product) {
-      await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          productName: product.title,
-          variantName: session.metadata?.variant_name || null,
-          price: totalAmount,
-          quantity: 1,
-        },
-      });
-      console.log("✅ Order item created");
-    } else {
-      // Create order item with product name from Stripe
-      await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          productName: productName,
-          variantName: null,
-          price: totalAmount,
-          quantity: 1,
-        },
-      });
-      console.log("✅ Order item created (unlinked product)");
-    }
+    // Create order item with variant info
+    await prisma.orderItem.create({
+      data: {
+        orderId: order.id,
+        variantId: variant?.id || null,
+        productName: product?.title || productName,
+        variantName: variantName,
+        price: totalAmount,
+        quantity: 1,
+      },
+    });
+    console.log("✅ Order item created with variant:", variantName || "N/A");
 
     console.log("🎉 Stripe order processing complete!");
     console.log("===\n");
