@@ -89,7 +89,7 @@ export default function OrderDetailPage() {
         setOrder(data.data);
         alert("Status updated successfully");
       } else {
-        alert("Failed to update status");
+        alert(data.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -99,9 +99,19 @@ export default function OrderDetailPage() {
     }
   };
 
+  const allowedTransitions: Record<string, string[]> = {
+    paid: ["processing", "failed", "refunded"],
+    processing: ["delivered", "failed", "refunded"],
+    delivered: [],
+    failed: [],
+    refunded: [],
+  };
+
+  const isTerminalStatus = (status: string) =>
+    ["delivered", "failed", "refunded"].includes(status);
+
   const getStatusBadgeColor = (status: string) => {
     const colors: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800",
       paid: "bg-green-100 text-green-800",
       processing: "bg-blue-100 text-blue-800",
       delivered: "bg-purple-100 text-purple-800",
@@ -187,27 +197,22 @@ export default function OrderDetailPage() {
             Update Status
           </h2>
           <div className="flex flex-wrap gap-2">
-            {[
-              "pending",
-              "paid",
-              "processing",
-              "delivered",
-              "refunded",
-              "failed",
-            ].map((status) => (
-              <button
-                key={status}
-                onClick={() => updateStatus(status)}
-                disabled={updating || order.status === status}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  order.status === status
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+            {isTerminalStatus(order.status) ? (
+              <p className="text-sm text-gray-500">
+                This order has a terminal status and cannot be changed.
+              </p>
+            ) : (
+              (allowedTransitions[order.status] || []).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => updateStatus(status)}
+                  disabled={updating}
+                  className="px-4 py-2 rounded-lg font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50"
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))
+            )}
           </div>
         </div>
 

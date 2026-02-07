@@ -161,10 +161,10 @@ async function handleOrderCreated(payload: any) {
         customerEmail,
         customerName,
         productId: product.id,
-        status: isPaid ? "paid" : "pending",
+        status: "paid",
         totalAmount,
         currency,
-        paidAt: isPaid ? new Date() : null,
+        paidAt: new Date(),
         metadata: {
           customData,
           lemonSqueezyData: attributes,

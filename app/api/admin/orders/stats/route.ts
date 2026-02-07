@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
     // Get counts by status
     const [
       totalOrders,
-      pendingOrders,
       paidOrders,
       processingOrders,
       deliveredOrders,
@@ -20,7 +19,6 @@ export async function GET(request: NextRequest) {
       failedOrders,
     ] = await Promise.all([
       prisma.order.count(),
-      prisma.order.count({ where: { status: "pending" } }),
       prisma.order.count({ where: { status: "paid" } }),
       prisma.order.count({ where: { status: "processing" } }),
       prisma.order.count({ where: { status: "delivered" } }),
@@ -66,7 +64,6 @@ export async function GET(request: NextRequest) {
       data: {
         totalOrders,
         statusCounts: {
-          pending: pendingOrders,
           paid: paidOrders,
           processing: processingOrders,
           delivered: deliveredOrders,

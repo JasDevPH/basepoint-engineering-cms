@@ -151,7 +151,7 @@ model Order {
   paymentProvider       String      @default("lemonsqueezy") // "lemonsqueezy" or "stripe"
 
   // Order details
-  status                String      @default("pending") // pending, paid, processing, delivered, refunded, failed
+  status                String      @default("paid") // paid, processing, delivered, refunded, failed
   totalAmount           Float       // Total in dollars
   currency              String      @default("USD")
 
@@ -163,6 +163,9 @@ model Order {
 
   // Order items (products/variants purchased)
   items                 OrderItem[]
+
+  // Status history tracking
+  statusHistory         OrderStatusHistory[]
 
   // Custom data from webhook
   metadata              Json?
@@ -193,4 +196,15 @@ model OrderItem {
   
   @@index([orderId])
   @@index([variantId])
+}
+
+model OrderStatusHistory {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus String
+  toStatus   String
+  changedAt  DateTime @default(now())
+
+  @@index([orderId])
 }

@@ -219,10 +219,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         customerName,
         productId: product?.id || null,
         paymentProvider: "stripe",
-        status: isPaid ? "paid" : "pending",
+        status: "paid",
         totalAmount,
         currency,
-        paidAt: isPaid ? new Date() : null,
+        paidAt: new Date(),
         metadata: {
           stripeSession: {
             id: session.id,
