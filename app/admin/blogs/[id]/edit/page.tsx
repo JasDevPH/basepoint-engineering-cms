@@ -4,6 +4,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
 import BlockEditor, { ContentBlock } from "@/components/BlockEditor";
 import {
   FileText,
@@ -25,6 +26,7 @@ export default function EditBlogPage() {
   const params = useParams();
   const blogId = params.id as string;
 
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -106,13 +108,13 @@ export default function EditBlogPage() {
 
       if (data.success) {
         setImageUrl(data.url);
-        alert("Featured image uploaded successfully!");
+        toast.success("Featured image uploaded successfully!");
       } else {
-        alert("Upload failed: " + data.error);
+        toast.error("Upload failed: " + data.error);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploadingFeaturedImage(false);
     }
@@ -153,7 +155,7 @@ export default function EditBlogPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Blog updated successfully!");
+        toast.success("Blog updated successfully!");
         router.push("/admin/blogs");
       } else {
         setError(data.error || "Failed to update blog");

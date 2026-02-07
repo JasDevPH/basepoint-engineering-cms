@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 import {
   FileText,
   Plus,
@@ -32,6 +34,8 @@ export default function BlogsPage() {
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -53,7 +57,13 @@ export default function BlogsPage() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    const confirmed = await confirmAction({
+      title: "Delete Blog",
+      message: `Are you sure you want to delete "${title}"?`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/admin/blogs/${id}`, {
@@ -62,14 +72,14 @@ export default function BlogsPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Blog deleted successfully");
+        toast.success("Blog deleted successfully");
         fetchBlogs();
       } else {
-        alert("Failed to delete blog");
+        toast.error("Failed to delete blog");
       }
     } catch (error) {
       console.error("Error deleting blog:", error);
-      alert("Error deleting blog");
+      toast.error("Error deleting blog");
     }
   };
 

@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 import {
   ShoppingCart,
   Truck,
@@ -106,6 +108,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const toast = useToast();
+  const confirm = useConfirm();
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Load stats
@@ -157,12 +161,12 @@ export default function OrdersPage() {
       if (data.success) {
         setSelectedOrder(data.data);
       } else {
-        alert("Failed to load order details");
+        toast.error("Failed to load order details");
         setShowModal(false);
       }
     } catch (error) {
       console.error("Error loading order:", error);
-      alert("Failed to load order details");
+      toast.error("Failed to load order details");
       setShowModal(false);
     } finally {
       setModalLoading(false);
@@ -188,7 +192,13 @@ export default function OrdersPage() {
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedOrder) return;
     if (newStatus === selectedOrder.status) return;
-    if (!confirm(`Change order status to "${newStatus}"?`)) return;
+    const confirmed = await confirm({
+      title: "Update Order Status",
+      message: `Change order status to "${newStatus}"?`,
+      confirmLabel: "Update",
+      variant: "info",
+    });
+    if (!confirmed) return;
 
     setUpdatingStatus(true);
     try {
@@ -204,12 +214,13 @@ export default function OrdersPage() {
         setSelectedOrder(data.data);
         loadOrders();
         loadStats();
+        toast.success("Order status updated");
       } else {
-        alert(data.error || "Failed to update status");
+        toast.error(data.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     } finally {
       setUpdatingStatus(false);
     }

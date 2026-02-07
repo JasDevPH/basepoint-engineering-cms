@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/components/Toast";
 import {
   Heading,
   Type,
@@ -61,6 +62,7 @@ export default function ProductBlockEditor({
   initialBlocks,
   onChange,
 }: ProductBlockEditorProps) {
+  const toast = useToast();
   const [blocks, setBlocks] = useState<ProductContentBlock[]>(initialBlocks);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
 
@@ -131,13 +133,13 @@ export default function ProductBlockEditor({
       const data = await response.json();
       if (data.success) {
         updateBlock(blockId, { content: data.url });
-        alert("Image uploaded successfully!");
+        toast.success("Image uploaded successfully!");
       } else {
-        alert("Upload failed: " + data.error);
+        toast.error("Upload failed: " + data.error);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploadingImageId(null);
     }

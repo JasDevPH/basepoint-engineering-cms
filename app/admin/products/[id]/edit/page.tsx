@@ -31,6 +31,8 @@ import {
   Edit2,
   Check,
 } from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface PreviewVariant {
   capacity?: string;
@@ -65,6 +67,8 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
+  const toast = useToast();
+  const confirmAction = useConfirm();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,24 +149,24 @@ export default function EditProductPage() {
   // Add bulk price update function
   const applyBulkPrice = async () => {
     if (selectedVariantIds.size === 0) {
-      alert("Please select at least one variant");
+      toast.warning("Please select at least one variant");
       return;
     }
 
     if (!bulkPrice || bulkPrice.trim() === "") {
-      alert("Please enter a price");
+      toast.warning("Please enter a price");
       return;
     }
 
-    if (
-      !confirm(
-        `Apply $${parseFloat(bulkPrice).toFixed(2)} to ${
-          selectedVariantIds.size
-        } selected variant(s)?`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirmAction({
+      title: "Apply Bulk Price",
+      message: `Apply $${parseFloat(bulkPrice).toFixed(2)} to ${
+        selectedVariantIds.size
+      } selected variant(s)?`,
+      confirmLabel: "Apply Price",
+      variant: "warning",
+    });
+    if (!confirmed) return;
 
     setApplyingBulkPrice(true);
 
@@ -194,13 +198,13 @@ export default function EditProductPage() {
         setSelectedVariantIds(new Set());
         setBulkPrice("");
 
-        alert(`Successfully updated ${selectedVariantIds.size} variant(s)!`);
+        toast.success(`Successfully updated ${selectedVariantIds.size} variant(s)!`);
       } else {
-        alert("Some variants failed to update. Please try again.");
+        toast.error("Some variants failed to update. Please try again.");
       }
     } catch (error) {
       console.error("Error applying bulk price:", error);
-      alert("An error occurred while updating prices");
+      toast.error("An error occurred while updating prices");
     } finally {
       setApplyingBulkPrice(false);
     }
@@ -262,13 +266,13 @@ export default function EditProductPage() {
         );
         setEditingVariantId(null);
         setEditingPrice("");
-        alert("Price updated successfully!");
+        toast.success("Price updated successfully!");
       } else {
-        alert("Failed to update price: " + data.error);
+        toast.error("Failed to update price: " + data.error);
       }
     } catch (error) {
       console.error("Error updating price:", error);
-      alert("An error occurred while updating the price");
+      toast.error("An error occurred while updating the price");
     } finally {
       setSavingVariant(false);
     }
@@ -307,17 +311,17 @@ export default function EditProductPage() {
 
   const handleSyncVariants = async () => {
     if (!selectedLSProductId) {
-      alert("Please select a Lemon Squeezy product first");
+      toast.warning("Please select a Lemon Squeezy product first");
       return;
     }
 
-    if (
-      !window.confirm(
-        "This will match your CMS variants with Lemon Squeezy variants by name and sync prices. Continue?"
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirmAction({
+      title: "Sync Variants",
+      message: "This will match your CMS variants with Lemon Squeezy variants by name and sync prices. Continue?",
+      confirmLabel: "Sync",
+      variant: "warning",
+    });
+    if (!confirmed) return;
 
     setSyncing(true);
     setSyncResults(null);
@@ -343,27 +347,30 @@ export default function EditProductPage() {
           message += `⚠ Unmatched: ${data.summary.unmatched}`;
         }
 
-        alert(message);
+        toast.success(message);
 
         // Refresh product data
         await fetchProduct();
       } else {
         if (data.instructions && data.productUrl) {
-          const proceed = window.confirm(
-            `${data.error}\n\n${data.instructions.join(
+          const proceed = await confirmAction({
+            title: "Lemon Squeezy Setup Required",
+            message: `${data.error}\n\n${data.instructions.join(
               "\n"
-            )}\n\nOpen Lemon Squeezy dashboard?`
-          );
+            )}\n\nOpen Lemon Squeezy dashboard?`,
+            confirmLabel: "Open Dashboard",
+            variant: "info",
+          });
           if (proceed) {
             window.open(data.productUrl, "_blank");
           }
         } else {
-          alert("Sync failed: " + data.error);
+          toast.error("Sync failed: " + data.error);
         }
       }
     } catch (error) {
       console.error("Sync error:", error);
-      alert("Failed to sync variants. Please try again.");
+      toast.error("Failed to sync variants. Please try again.");
     } finally {
       setSyncing(false);
     }
@@ -481,13 +488,13 @@ export default function EditProductPage() {
       const data = await response.json();
       if (data.success) {
         setImageUrl(data.url);
-        alert("Image uploaded successfully!");
+        toast.success("Image uploaded successfully!");
       } else {
-        alert("Upload failed: " + data.error);
+        toast.error("Upload failed: " + data.error);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
     }
@@ -502,14 +509,14 @@ export default function EditProductPage() {
     );
 
     if (!hasCapacity && !hasLength && !hasConnection && !hasCustomFields) {
-      alert(
+      toast.warning(
         "Please enter at least one specification value (capacity, length, connection style, or custom field)"
       );
       return;
     }
 
     if (!title.trim()) {
-      alert("Please enter product title first (used for model numbers)");
+      toast.warning("Please enter product title first (used for model numbers)");
       return;
     }
 
@@ -715,7 +722,7 @@ export default function EditProductPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Product updated successfully!");
+        toast.success("Product updated successfully!");
 
         // ✅ REDIRECT TO PRODUCTS PAGE
         router.push("/admin/products");
@@ -1844,7 +1851,7 @@ export default function EditProductPage() {
                         type="button"
                         onClick={() => {
                           setAutoGenerate(false);
-                          alert(
+                          toast.success(
                             "Auto-Generate disabled. Your variant prices are now safe from regeneration."
                           );
                         }}

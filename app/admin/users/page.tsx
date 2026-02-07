@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 import {
   Users,
   UserCheck,
@@ -43,6 +45,8 @@ export default function UsersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Password reset modal
+  const toast = useToast();
+  const confirm = useConfirm();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordTarget, setPasswordTarget] = useState<UserRecord | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -84,8 +88,14 @@ export default function UsersPage() {
 
   const handleToggleActive = async (user: UserRecord) => {
     const action = user.isActive ? "deactivate" : "approve";
-    if (user.isActive && !confirm(`Are you sure you want to deactivate ${user.name}?`)) {
-      return;
+    if (user.isActive) {
+      const confirmed = await confirm({
+        title: "Deactivate User",
+        message: `Are you sure you want to deactivate ${user.name}?`,
+        confirmLabel: "Deactivate",
+        variant: "warning",
+      });
+      if (!confirmed) return;
     }
 
     setActionLoading(user.id);
@@ -97,21 +107,26 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(user.isActive ? "User deactivated" : "User approved");
         loadUsers();
       } else {
-        alert(data.error || `Failed to ${action} user`);
+        toast.error(data.error || `Failed to ${action} user`);
       }
     } catch {
-      alert(`Failed to ${action} user`);
+      toast.error(`Failed to ${action} user`);
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDelete = async (user: UserRecord) => {
-    if (!confirm(`Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Delete User",
+      message: `Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     setActionLoading(user.id);
     try {
@@ -120,12 +135,13 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success("User deleted successfully");
         loadUsers();
       } else {
-        alert(data.error || "Failed to delete user");
+        toast.error(data.error || "Failed to delete user");
       }
     } catch {
-      alert("Failed to delete user");
+      toast.error("Failed to delete user");
     } finally {
       setActionLoading(null);
     }
@@ -141,7 +157,7 @@ export default function UsersPage() {
     if (!passwordTarget || !newPassword) return;
 
     if (newPassword.length < 8) {
-      alert("Password must be at least 8 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
@@ -157,12 +173,12 @@ export default function UsersPage() {
         setShowPasswordModal(false);
         setPasswordTarget(null);
         setNewPassword("");
-        alert("Password reset successfully");
+        toast.success("Password reset successfully");
       } else {
-        alert(data.error || "Failed to reset password");
+        toast.error(data.error || "Failed to reset password");
       }
     } catch {
-      alert("Failed to reset password");
+      toast.error("Failed to reset password");
     } finally {
       setPasswordLoading(false);
     }

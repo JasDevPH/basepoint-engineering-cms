@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 import {
   Briefcase,
   Plus,
@@ -32,6 +34,8 @@ export default function ServicesPage() {
   const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -53,7 +57,13 @@ export default function ServicesPage() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    const confirmed = await confirmAction({
+      title: "Delete Service",
+      message: `Are you sure you want to delete "${title}"?`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/admin/services/${id}`, {
@@ -61,14 +71,14 @@ export default function ServicesPage() {
       });
 
       if (res.ok) {
-        alert("Service deleted successfully!");
+        toast.success("Service deleted successfully!");
         fetchServices();
       } else {
-        alert("Failed to delete service");
+        toast.error("Failed to delete service");
       }
     } catch (error) {
       console.error("Error deleting service:", error);
-      alert("An error occurred");
+      toast.error("An error occurred");
     }
   };
 

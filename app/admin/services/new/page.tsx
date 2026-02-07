@@ -5,6 +5,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
 import IconPicker from "@/components/IconPicker";
 import ServiceBlockEditor, {
   ServiceContentBlock,
@@ -24,6 +25,7 @@ import {
 
 export default function NewServicePage() {
   const router = useRouter();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -84,7 +86,7 @@ export default function NewServicePage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Service created successfully!");
+        toast.success("Service created successfully!");
         router.push("/admin/services");
       } else {
         setError(data.error || "Failed to create service");

@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface Order {
   id: string;
@@ -45,6 +47,8 @@ export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
 
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -61,19 +65,25 @@ export default function OrderDetailPage() {
       if (data.success) {
         setOrder(data.data);
       } else {
-        alert("Order not found");
+        toast.error("Order not found");
         router.push("/admin/orders");
       }
     } catch (error) {
       console.error("Error loading order:", error);
-      alert("Failed to load order");
+      toast.error("Failed to load order");
     } finally {
       setLoading(false);
     }
   };
 
   const updateStatus = async (newStatus: string) => {
-    if (!confirm(`Change order status to "${newStatus}"?`)) return;
+    const confirmed = await confirmAction({
+      title: "Update Order Status",
+      message: `Change order status to "${newStatus}"?`,
+      confirmLabel: "Update",
+      variant: "info",
+    });
+    if (!confirmed) return;
 
     setUpdating(true);
     try {
@@ -87,13 +97,13 @@ export default function OrderDetailPage() {
 
       if (data.success) {
         setOrder(data.data);
-        alert("Status updated successfully");
+        toast.success("Status updated successfully");
       } else {
-        alert(data.error || "Failed to update status");
+        toast.error(data.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     } finally {
       setUpdating(false);
     }

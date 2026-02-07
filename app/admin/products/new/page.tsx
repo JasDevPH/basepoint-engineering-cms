@@ -5,6 +5,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
 import ProductBlockEditor, {
   ProductContentBlock,
 } from "@/components/ProductBlockEditor";
@@ -63,6 +64,7 @@ interface LemonSqueezyProduct {
 export default function NewProductPage() {
   const router = useRouter();
 
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -193,13 +195,13 @@ export default function NewProductPage() {
       const data = await response.json();
       if (data.success) {
         setImageUrl(data.url);
-        alert("Image uploaded successfully!");
+        toast.success("Image uploaded successfully!");
       } else {
-        alert("Upload failed: " + data.error);
+        toast.error("Upload failed: " + data.error);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
     }
@@ -214,14 +216,14 @@ export default function NewProductPage() {
     );
 
     if (!hasCapacity && !hasLength && !hasConnection && !hasCustomFields) {
-      alert(
+      toast.warning(
         "Please enter at least one specification value (capacity, length, connection style, or custom field)"
       );
       return;
     }
 
     if (!title.trim()) {
-      alert("Please enter product title first (used for model numbers)");
+      toast.warning("Please enter product title first (used for model numbers)");
       return;
     }
 
@@ -426,7 +428,7 @@ export default function NewProductPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Product created successfully!");
+        toast.success("Product created successfully!");
         router.push("/admin/products");
       } else {
         setError(data.error || "Failed to create product");

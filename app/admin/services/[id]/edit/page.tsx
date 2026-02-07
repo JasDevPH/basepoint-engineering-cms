@@ -5,6 +5,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import { useToast } from "@/components/Toast";
 import IconPicker from "@/components/IconPicker";
 import ServiceBlockEditor, {
   ServiceContentBlock,
@@ -28,6 +29,7 @@ export default function EditServicePage() {
   const params = useParams();
   const serviceId = params.id as string;
 
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -125,7 +127,7 @@ export default function EditServicePage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Service updated successfully!");
+        toast.success("Service updated successfully!");
         router.push("/admin/services");
       } else {
         setError(data.error || "Failed to update service");

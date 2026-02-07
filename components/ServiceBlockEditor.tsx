@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/components/Toast";
 import {
   GripVertical,
   Plus,
@@ -71,6 +72,7 @@ export default function ServiceBlockEditor({
   initialBlocks,
   onChange,
 }: ServiceBlockEditorProps) {
+  const toast = useToast();
   const [blocks, setBlocks] = useState<ServiceContentBlock[]>(initialBlocks);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [editingCardIcon, setEditingCardIcon] = useState<{
@@ -213,13 +215,13 @@ export default function ServiceBlockEditor({
 
       if (data.success) {
         updateBlock(blockId, { url: data.url });
-        alert("Image uploaded successfully!");
+        toast.success("Image uploaded successfully!");
       } else {
-        alert("Upload failed: " + data.error);
+        toast.error("Upload failed: " + data.error);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     } finally {
       setUploadingImageId(null);
     }
