@@ -9,6 +9,7 @@ export interface JWTPayload {
   adminId: string;
   email: string;
   role: string;
+  isActive: boolean;
 }
 
 // Hash password

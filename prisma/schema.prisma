@@ -114,6 +114,7 @@ model Admin {
   password  String
   name      String
   role      String   @default("admin")
+  isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

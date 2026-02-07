@@ -37,11 +37,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Block inactive users
+    if (!admin.isActive) {
+      return NextResponse.json(
+        { success: false, error: "Your account is pending approval. Please contact an administrator." },
+        { status: 403 }
+      );
+    }
+
     // Generate token
     const token = generateToken({
       adminId: admin.id,
       email: admin.email,
       role: admin.role,
+      isActive: admin.isActive,
     });
 
     // Test token immediately
@@ -61,6 +70,7 @@ export async function POST(request: NextRequest) {
           email: admin.email,
           name: admin.name,
           role: admin.role,
+          isActive: admin.isActive,
         },
       },
       { status: 200 }

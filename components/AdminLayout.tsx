@@ -10,6 +10,7 @@ import {
   FileText,
   Briefcase,
   ShoppingCart,
+  Users,
   LogOut,
   Menu,
   X,
@@ -23,12 +24,14 @@ interface AdminLayoutProps {
 // Create a singleton auth state that persists across navigations
 let isAuthenticated = false;
 let authChecked = false;
+let cachedUserRole: string | null = null;
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(!authChecked);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(cachedUserRole);
 
   useEffect(() => {
     // Only check auth if we haven't checked before
@@ -45,15 +48,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       if (!data.success) {
         isAuthenticated = false;
         authChecked = false;
+        cachedUserRole = null;
         router.push("/admin/login");
       } else {
         isAuthenticated = true;
         authChecked = true;
+        cachedUserRole = data.data.role;
+        setUserRole(data.data.role);
         setLoading(false);
       }
     } catch (error) {
       isAuthenticated = false;
       authChecked = false;
+      cachedUserRole = null;
       router.push("/admin/login");
     }
   };
@@ -62,6 +69,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     await fetch("/api/auth/logout", { method: "POST" });
     isAuthenticated = false;
     authChecked = false;
+    cachedUserRole = null;
     router.push("/admin/login");
   };
 
@@ -70,7 +78,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Products", path: "/admin/products", icon: Package },
     { label: "Blogs", path: "/admin/blogs", icon: FileText },
     { label: "Services", path: "/admin/services", icon: Briefcase },
-    { label: "Orders", path: "/admin/orders", icon: ShoppingCart }, // 🆕 ADDED
+    { label: "Orders", path: "/admin/orders", icon: ShoppingCart },
+    ...(userRole === "admin"
+      ? [{ label: "Users", path: "/admin/users", icon: Users }]
+      : []),
   ];
 
   // Check if path is active

@@ -5,6 +5,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -124,8 +125,16 @@ export default function AdminLogin() {
           </form>
         </div>
 
-        {/* Footer */}
+        {/* Signup Link */}
         <p className="text-center text-sm text-gray-500 mt-6">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-[#1e3a8a] hover:underline font-medium">
+            Sign Up
+          </Link>
+        </p>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 mt-4">
           Basepoint Engineering © 2025
         </p>
       </div>
