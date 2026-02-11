@@ -1,6 +1,6 @@
 // FILE: public/webflow/product-detail.js
 
-const API_URL = "http://localhost:3000"; // Change to production URL when deploying
+const API_URL = "https://cms.basepointengineering.com/"; // Change to production URL when deploying
 let allVariants = [];
 let selectedVariant = null;
 let currentPage = 1;
@@ -64,7 +64,7 @@ function displaySideNavigation(categories, currentSlug) {
     .sort()
     .forEach((category, index) => {
       const hasCurrentProduct = categories[category].some(
-        (p) => p.slug === currentSlug
+        (p) => p.slug === currentSlug,
       );
       const isExpanded = hasCurrentProduct || index === 0;
 
@@ -102,18 +102,29 @@ function displaySideNavigation(categories, currentSlug) {
   }
 
   if (window.innerWidth <= 768) {
-    const contentContainer = document.querySelector(
-      '[data-product-detail="content"]'
+    let mobileNavContainer = document.getElementById("side-nav-mobile");
+    if (!mobileNavContainer) {
+      mobileNavContainer = document.createElement("div");
+      mobileNavContainer.id = "side-nav-mobile";
+      mobileNavContainer.className = "side-nav-mobile-container";
+    }
+    mobileNavContainer.innerHTML = html;
+
+    // Place mobile nav at the very bottom of the page
+    const variantsTable = document.querySelector(
+      '[data-product-detail="variants-table"]',
     );
-    if (contentContainer && contentContainer.parentElement) {
-      let mobileNavContainer = document.getElementById("side-nav-mobile");
-      if (!mobileNavContainer) {
-        mobileNavContainer = document.createElement("div");
-        mobileNavContainer.id = "side-nav-mobile";
-        mobileNavContainer.className = "side-nav-mobile-container";
-      }
-      mobileNavContainer.innerHTML = html;
+    const contentContainer = document.querySelector(
+      '[data-product-detail="content"]',
+    );
+
+    if (variantsTable && variantsTable.parentElement) {
+      // Insert after the variants table's parent to be at the bottom
+      variantsTable.after(mobileNavContainer);
+    } else if (contentContainer && contentContainer.parentElement) {
       contentContainer.parentElement.appendChild(mobileNavContainer);
+    } else {
+      document.body.appendChild(mobileNavContainer);
     }
   }
 
@@ -122,14 +133,24 @@ function displaySideNavigation(categories, currentSlug) {
 
 function toggleCategory(element) {
   const items = element.nextElementSibling;
-  if (items.classList.contains("hidden")) {
+  const isCurrentlyHidden = items.classList.contains("hidden");
+
+  // Auto-close all other categories first
+  const allTitles = document.querySelectorAll(".side-nav-category-title");
+  allTitles.forEach(function (title) {
+    const titleItems = title.nextElementSibling;
+    if (titleItems) {
+      titleItems.classList.add("hidden");
+      title.classList.remove("expanded");
+      title.classList.add("collapsed");
+    }
+  });
+
+  // If the clicked one was closed, open it
+  if (isCurrentlyHidden) {
     items.classList.remove("hidden");
     element.classList.remove("collapsed");
     element.classList.add("expanded");
-  } else {
-    items.classList.add("hidden");
-    element.classList.remove("expanded");
-    element.classList.add("collapsed");
   }
 }
 
@@ -186,7 +207,7 @@ function displayProductDetail(product) {
   console.log("Product:", product.title);
   console.log(
     "Number of variants:",
-    product.variants ? product.variants.length : 0
+    product.variants ? product.variants.length : 0,
   );
   console.log("Price Type:", product.priceType);
   console.log("Base Price:", product.basePrice);
@@ -239,10 +260,19 @@ function displayProductDetail(product) {
   if (imgEl && product.imageUrl) {
     imgEl.src = product.imageUrl + "?t=" + new Date().getTime();
     imgEl.alt = product.title;
-    imgEl.style.width = "100%";
     imgEl.style.height = "auto";
     imgEl.style.objectFit = "cover";
     imgEl.style.borderRadius = "8px";
+
+    if (window.innerWidth <= 768) {
+      // Mobile: center image with reasonable size
+      imgEl.style.width = "auto";
+      imgEl.style.maxWidth = "85%";
+      imgEl.style.display = "block";
+      imgEl.style.margin = "1.5rem auto";
+    } else {
+      imgEl.style.width = "100%";
+    }
     console.log("✓ Image updated");
   }
 
@@ -265,7 +295,7 @@ function displayProductDetail(product) {
         product.description
           .replace(
             /\n\n/g,
-            "</p><p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">"
+            "</p><p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">",
           )
           .replace(/\n/g, "<br>") +
         "</p>";
@@ -365,13 +395,13 @@ async function handleSimplePurchase(productTitle, price) {
           typeof checkoutWindow.closed === "undefined"
         ) {
           alert(
-            "Popup blocked! Please allow popups for this site and try again."
+            "Popup blocked! Please allow popups for this site and try again.",
           );
         }
       } else {
         console.error("Stripe Checkout failed:", data);
         alert(
-          "Failed to create checkout: " + (data.error || "Please try again.")
+          "Failed to create checkout: " + (data.error || "Please try again."),
         );
       }
 
@@ -421,7 +451,7 @@ async function handleSimplePurchase(productTitle, price) {
         typeof checkoutWindow.closed === "undefined"
       ) {
         alert(
-          "Popup blocked! Please allow popups for this site and try again."
+          "Popup blocked! Please allow popups for this site and try again.",
         );
       }
 
@@ -432,7 +462,7 @@ async function handleSimplePurchase(productTitle, price) {
     } else {
       console.error("Checkout failed:", data);
       alert(
-        "Failed to create checkout: " + (data.error || "Please try again.")
+        "Failed to create checkout: " + (data.error || "Please try again."),
       );
       if (purchaseBtn) {
         purchaseBtn.disabled = false;
@@ -628,7 +658,7 @@ function updateConfiguration() {
 
   const selectedCapacity = capacitySelect.value;
   let filteredVariants = allVariants.filter(
-    (v) => v.capacity === selectedCapacity
+    (v) => v.capacity === selectedCapacity,
   );
 
   if (lengthSelect) {
@@ -657,7 +687,7 @@ function updateConfiguration() {
     const selectedLength = lengthSelect.value;
     if (selectedLength) {
       filteredVariants = filteredVariants.filter(
-        (v) => v.length === selectedLength
+        (v) => v.length === selectedLength,
       );
     }
   }
@@ -782,7 +812,7 @@ function findSelectedVariant() {
           const variantValue = v.customFields[fieldName];
           const matches = variantValue === value;
           console.log(
-            `  - Custom field "${fieldName}": variant="${variantValue}", looking for="${value}", matches=${matches}`
+            `  - Custom field "${fieldName}": variant="${variantValue}", looking for="${value}", matches=${matches}`,
           );
           if (!matches) {
             matchCustomFields = false;
@@ -846,7 +876,10 @@ async function handlePurchase() {
 
   // Check if Stripe is configured - use Stripe Checkout API
   if (currentProductStripePaymentLink) {
-    console.log("✓ Using Stripe Checkout API for variant:", selectedVariant.modelNumber);
+    console.log(
+      "✓ Using Stripe Checkout API for variant:",
+      selectedVariant.modelNumber,
+    );
 
     try {
       const response = await fetch(`${API_URL}/api/checkout/stripe`, {
@@ -881,13 +914,13 @@ async function handlePurchase() {
           typeof checkoutWindow.closed === "undefined"
         ) {
           alert(
-            "Popup blocked! Please allow popups for this site and try again."
+            "Popup blocked! Please allow popups for this site and try again.",
           );
         }
       } else {
         console.error("Stripe Checkout failed:", data);
         alert(
-          "Failed to create checkout: " + (data.error || "Please try again.")
+          "Failed to create checkout: " + (data.error || "Please try again."),
         );
       }
 
@@ -937,7 +970,7 @@ async function handlePurchase() {
         typeof checkoutWindow.closed === "undefined"
       ) {
         alert(
-          "Popup blocked! Please allow popups for this site and try again."
+          "Popup blocked! Please allow popups for this site and try again.",
         );
       }
 
@@ -946,7 +979,7 @@ async function handlePurchase() {
     } else {
       console.error("Checkout failed:", data);
       alert(
-        "Failed to create checkout: " + (data.error || "Please try again.")
+        "Failed to create checkout: " + (data.error || "Please try again."),
       );
       purchaseBtn.disabled = false;
       purchaseBtn.innerHTML = originalText;
@@ -1140,7 +1173,7 @@ function renderProductContentBlocks(blocks) {
 // 🆕 UPDATED: Display variants table with custom fields
 function displayVariants(variants) {
   const tableContainer = document.querySelector(
-    '[data-product-detail="variants-table"]'
+    '[data-product-detail="variants-table"]',
   );
 
   if (!tableContainer) {
@@ -1155,7 +1188,7 @@ function displayVariants(variants) {
   variants.forEach((variant) => {
     if (variant.customFields) {
       Object.keys(variant.customFields).forEach((key) =>
-        customFieldNames.add(key)
+        customFieldNames.add(key),
       );
     }
   });
@@ -1341,7 +1374,7 @@ function goToPage(pageNumber) {
   displayVariants(allVariants);
 
   const tableContainer = document.querySelector(
-    '[data-product-detail="variants-table"]'
+    '[data-product-detail="variants-table"]',
   );
   if (tableContainer) {
     tableContainer.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1371,4 +1404,6 @@ if (document.readyState === "loading") {
   setTimeout(loadProductDetail, 500);
 }
 
-console.log("✓ Product detail script loaded with custom fields and Stripe Payment Link support");
+console.log(
+  "✓ Product detail script loaded with custom fields and Stripe Payment Link support",
+);
