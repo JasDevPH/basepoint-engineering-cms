@@ -66,7 +66,7 @@ function displaySideNavigation(categories, currentSlug) {
       const hasCurrentProduct = categories[category].some(
         (p) => p.slug === currentSlug,
       );
-      const isExpanded = hasCurrentProduct || index === 0;
+      const isExpanded = hasCurrentProduct;
 
       html += '<div class="side-nav-category">';
       html +=
