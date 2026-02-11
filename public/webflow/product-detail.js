@@ -1,6 +1,6 @@
 // FILE: public/webflow/product-detail.js
 
-const API_URL = "https://cms.basepointengineering.com/"; // Change to production URL when deploying
+const API_URL = "https://cms.basepointengineering.com"; // Change to production URL when deploying
 let allVariants = [];
 let selectedVariant = null;
 let currentPage = 1;
