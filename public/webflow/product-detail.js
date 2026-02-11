@@ -1083,17 +1083,18 @@ function renderProductContentBlocks(blocks) {
         case "image":
           const imageStyle =
             baseStyle +
-            " max-width: 100%; height: auto; display: block; border-radius: 8px;";
+            " width: 400px; height: 400px; object-fit: contain; display: block; border-radius: 8px; background: #f9fafb;";
           return (
+            '<div style="display: flex; justify-content: center; margin: 1rem 0;">' +
             '<img src="' +
             block.content +
             '" alt="' +
             (block.alt || "") +
             '" style="' +
             imageStyle +
-            '" />'
+            '" />' +
+            "</div>"
           );
-
         case "quote-form":
           return (
             '<div style="' +
