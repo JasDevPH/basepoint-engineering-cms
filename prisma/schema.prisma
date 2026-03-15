@@ -67,9 +67,11 @@ model ProductVariant {
   
   price       Float?   // Custom price per variant (optional)
   stock       Int      @default(0)
+  enabled     Boolean  @default(true)
+  previewFileLink String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // LEMON SQUEEZY INTEGRATION
   lemonSqueezyVariantId   String?  @unique
   lemonSqueezyPrice       Int?     // Price in cents
@@ -197,6 +199,21 @@ model OrderItem {
   
   @@index([orderId])
   @@index([variantId])
+}
+
+model Lead {
+  id              String   @id @default(cuid())
+  name            String
+  email           String
+  productSlug     String?
+  productTitle    String?
+  variantId       String?
+  variantModel    String?
+  previewFileLink String?
+  claimedAt       DateTime @default(now())
+
+  @@index([email])
+  @@index([claimedAt])
 }
 
 model OrderStatusHistory {

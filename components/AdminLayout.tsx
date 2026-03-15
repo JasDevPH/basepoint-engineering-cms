@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  UserCheck,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -79,6 +80,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Blogs", path: "/admin/blogs", icon: FileText },
     { label: "Services", path: "/admin/services", icon: Briefcase },
     { label: "Orders", path: "/admin/orders", icon: ShoppingCart },
+    { label: "Leads", path: "/admin/leads", icon: UserCheck },
     ...(userRole === "admin"
       ? [{ label: "Users", path: "/admin/users", icon: Users }]
       : []),

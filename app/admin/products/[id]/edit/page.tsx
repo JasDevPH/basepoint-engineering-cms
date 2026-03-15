@@ -118,6 +118,7 @@ export default function EditProductPage() {
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<string>("");
   const [savingVariant, setSavingVariant] = useState(false);
+  const [editingPreviewLink, setEditingPreviewLink] = useState<Record<string, string>>({});
 
   // Stripe Payment Link State
   const [stripePaymentLink, setStripePaymentLink] = useState("");
@@ -207,6 +208,64 @@ export default function EditProductPage() {
       toast.error("An error occurred while updating prices");
     } finally {
       setApplyingBulkPrice(false);
+    }
+  };
+
+  const toggleVariantEnabled = async (variantId: string, currentEnabled: boolean) => {
+    try {
+      // Optimistic update
+      setVariants((prev) =>
+        prev.map((v) =>
+          v.id === variantId ? { ...v, enabled: !currentEnabled } : v
+        )
+      );
+      const res = await fetch(
+        `/api/admin/products/${productId}/variants/${variantId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !currentEnabled }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        // Revert on failure
+        setVariants((prev) =>
+          prev.map((v) =>
+            v.id === variantId ? { ...v, enabled: currentEnabled } : v
+          )
+        );
+        toast.error("Failed to update variant status");
+      }
+    } catch {
+      toast.error("Error updating variant status");
+    }
+  };
+
+  const savePreviewLink = async (variantId: string) => {
+    const link = editingPreviewLink[variantId] ?? "";
+    try {
+      const res = await fetch(
+        `/api/admin/products/${productId}/variants/${variantId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ previewFileLink: link }),
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setVariants((prev) =>
+          prev.map((v) =>
+            v.id === variantId ? { ...v, previewFileLink: link || null } : v
+          )
+        );
+        toast.success("Preview link saved!");
+      } else {
+        toast.error("Failed to save preview link");
+      }
+    } catch {
+      toast.error("Error saving preview link");
     }
   };
 
@@ -1986,6 +2045,12 @@ export default function EditProductPage() {
                             Connection
                           </th>
                         )}
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                          Preview Link
+                        </th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
                           Price (USD)
                         </th>
@@ -2032,6 +2097,40 @@ export default function EditProductPage() {
                               {variant.endConnection || "—"}
                             </td>
                           )}
+                          {/* Status toggle */}
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleVariantEnabled(variant.id, variant.enabled !== false)}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                variant.enabled !== false
+                                  ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                  : "bg-red-100 text-red-700 hover:bg-red-200"
+                              }`}
+                            >
+                              {variant.enabled !== false ? "Enabled" : "Disabled"}
+                            </button>
+                          </td>
+                          {/* Preview Link */}
+                          <td className="px-4 py-3">
+                            <input
+                              type="url"
+                              value={
+                                editingPreviewLink[variant.id] !== undefined
+                                  ? editingPreviewLink[variant.id]
+                                  : variant.previewFileLink || ""
+                              }
+                              onChange={(e) =>
+                                setEditingPreviewLink((prev) => ({
+                                  ...prev,
+                                  [variant.id]: e.target.value,
+                                }))
+                              }
+                              onBlur={() => savePreviewLink(variant.id)}
+                              placeholder="https://..."
+                              className="w-48 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            />
+                          </td>
                           <td className="px-4 py-3 text-right">
                             {editingVariantId === variant.id ? (
                               <div className="flex items-center justify-end gap-2">

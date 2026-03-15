@@ -12,11 +12,16 @@ export async function PUT(
   try {
     const { id, variantId } = await params;
     const body = await request.json();
-    const { price } = body;
+    const { price, enabled, previewFileLink } = body;
 
-    if (price === undefined || price === null) {
+    // At least one field must be provided
+    if (
+      price === undefined &&
+      enabled === undefined &&
+      previewFileLink === undefined
+    ) {
       return NextResponse.json(
-        { success: false, error: "Price is required" },
+        { success: false, error: "No fields to update" },
         {
           status: 400,
           headers: corsHeaders(request.headers.get("origin") || undefined),
@@ -24,12 +29,20 @@ export async function PUT(
       );
     }
 
-    // Update variant price
+    const updateData: Record<string, unknown> = {};
+    if (price !== undefined) {
+      updateData.price = price ? parseFloat(price) : null;
+    }
+    if (enabled !== undefined) {
+      updateData.enabled = Boolean(enabled);
+    }
+    if (previewFileLink !== undefined) {
+      updateData.previewFileLink = previewFileLink || null;
+    }
+
     const variant = await prisma.productVariant.update({
       where: { id: variantId },
-      data: {
-        price: price ? parseFloat(price) : null,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(
@@ -46,6 +59,14 @@ export async function PUT(
       }
     );
   }
+}
+
+// PATCH alias for PUT
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; variantId: string }> }
+) {
+  return PUT(request, context);
 }
 
 export async function OPTIONS(request: NextRequest) {

@@ -1,7 +1,7 @@
 // FILE: components/BlockEditor.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/components/Toast";
 import {
   Type,
@@ -20,6 +20,7 @@ import {
   ChevronUp,
   ChevronDown,
   Columns,
+  Link,
 } from "lucide-react";
 
 export interface ColumnData {
@@ -60,6 +61,14 @@ export default function BlockEditor({
   const toast = useToast();
   const [blocks, setBlocks] = useState<ContentBlock[]>(initialBlocks);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const [linkToolbar, setLinkToolbar] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    blockId: string;
+  } | null>(null);
+  const [linkUrl, setLinkUrl] = useState("");
+  const savedRangeRef = useRef<Range | null>(null);
 
   const addBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock = {
@@ -263,6 +272,58 @@ export default function BlockEditor({
     }
   };
 
+  const handleTextSelection = (blockId: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    savedRangeRef.current = range.cloneRange();
+    setLinkUrl("");
+    setLinkToolbar({
+      visible: true,
+      x: rect.left + window.scrollX + rect.width / 2,
+      y: rect.top + window.scrollY - 50,
+      blockId,
+    });
+  };
+
+  const applyLink = (url: string) => {
+    if (!savedRangeRef.current || !url) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(savedRangeRef.current);
+    document.execCommand("createLink", false, url);
+    // Sync content back
+    if (linkToolbar) {
+      const el = document.getElementById(`paragraph-${linkToolbar.blockId}`);
+      if (el) {
+        updateBlock(linkToolbar.blockId, { content: el.innerHTML });
+      }
+    }
+    setLinkToolbar(null);
+    savedRangeRef.current = null;
+  };
+
+  const removeLink = () => {
+    if (!savedRangeRef.current) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(savedRangeRef.current);
+    document.execCommand("unlink");
+    if (linkToolbar) {
+      const el = document.getElementById(`paragraph-${linkToolbar.blockId}`);
+      if (el) {
+        updateBlock(linkToolbar.blockId, { content: el.innerHTML });
+      }
+    }
+    setLinkToolbar(null);
+    savedRangeRef.current = null;
+  };
+
   const renderBlock = (block: ContentBlock, index: number) => {
     switch (block.type) {
       case "heading":
@@ -296,13 +357,35 @@ export default function BlockEditor({
 
       case "paragraph":
         return (
-          <textarea
-            value={block.content}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-            placeholder="Enter paragraph text..."
-            rows={4}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"
-          />
+          <div className="relative">
+            <div
+              id={`paragraph-${block.id}`}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(e) =>
+                updateBlock(block.id, {
+                  content: (e.target as HTMLDivElement).innerHTML,
+                })
+              }
+              onMouseUp={() => handleTextSelection(block.id)}
+              dangerouslySetInnerHTML={{ __html: block.content }}
+              data-placeholder="Enter paragraph text... (select text to add hyperlink)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
+              style={{ lineHeight: "1.6" }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById(`paragraph-${block.id}`);
+                if (el) el.focus();
+                handleTextSelection(block.id);
+              }}
+              className="absolute top-2 right-2 p-1.5 bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors"
+              title="Add hyperlink to selected text"
+            >
+              <Link className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+          </div>
         );
 
       case "list":
@@ -582,7 +665,7 @@ export default function BlockEditor({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
       {blocks.map((block, index) => (
         <div
           key={block.id}
@@ -723,6 +806,50 @@ export default function BlockEditor({
           </button>
         </div>
       </div>
+
+      {/* Floating link toolbar */}
+      {linkToolbar?.visible && (
+        <div
+          className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-lg p-3 flex items-center gap-2"
+          style={{ left: linkToolbar.x - 160, top: linkToolbar.y }}
+        >
+          <Link className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyLink(linkUrl);
+              if (e.key === "Escape") setLinkToolbar(null);
+            }}
+            placeholder="https://..."
+            className="w-48 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={() => applyLink(linkUrl)}
+            disabled={!linkUrl}
+            className="px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={removeLink}
+            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200"
+          >
+            Remove
+          </button>
+          <button
+            type="button"
+            onClick={() => setLinkToolbar(null)}
+            className="p-1 hover:bg-gray-100 rounded"
+          >
+            <X className="w-3 h-3 text-gray-500" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

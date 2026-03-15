@@ -231,6 +231,8 @@ function displayProductDetail(product) {
   }
 
   allVariants = product.variants || [];
+  // Separate enabled variants for configurator (disabled ones still in allVariants for table)
+  const enabledVariants = allVariants.filter(function(v) { return v.enabled !== false; });
 
   document.title = product.title + " - Basepoint Engineering";
 
@@ -276,9 +278,9 @@ function displayProductDetail(product) {
     console.log("✓ Image updated");
   }
 
-  if (allVariants.length > 0) {
+  if (enabledVariants.length > 0) {
     console.log("✓ Displaying configurator with variants");
-    displayProductConfigurator(allVariants, product);
+    displayProductConfigurator(enabledVariants, product);
   } else if (product.basePrice) {
     console.log("✓ Displaying simple price (no variants)");
     displaySimplePriceBox(product);
@@ -837,6 +839,10 @@ function findSelectedVariant() {
 
   console.log("Selected variant:", selectedVariant);
 
+  // Remove existing preview button if any
+  var existingPreviewBtn = document.getElementById("preview-btn");
+  if (existingPreviewBtn) existingPreviewBtn.remove();
+
   if (selectedVariant) {
     variantInfo.style.display = "block";
     modelNumber.textContent =
@@ -853,6 +859,18 @@ function findSelectedVariant() {
 
     purchaseBtn.disabled = false;
     console.log("✓ Variant selected:", selectedVariant.modelNumber);
+
+    // Show "Get Preview File" button if variant has a preview link
+    if (selectedVariant.previewFileLink) {
+      var previewBtn = document.createElement("button");
+      previewBtn.id = "preview-btn";
+      previewBtn.className = "configurator-cta";
+      previewBtn.style.marginTop = "10px";
+      previewBtn.style.background = "#1e3a8a";
+      previewBtn.innerHTML = "📄 Get Preview File";
+      previewBtn.onclick = function() { showPreviewClaimModal(selectedVariant); };
+      purchaseBtn.parentNode.insertBefore(previewBtn, purchaseBtn.nextSibling);
+    }
   } else {
     variantInfo.style.display = "none";
     priceDisplay.style.display = "none";
@@ -1220,22 +1238,39 @@ function displayVariants(variants) {
     tableHtml += "<th>" + fieldName.toUpperCase() + "</th>";
   });
 
+  // Add Price column header if any variant has a price
+  var hasPrice = variants.some(function(v) { return v.price !== null && v.price !== undefined; });
+  if (hasPrice) tableHtml += "<th>Price</th>";
+
   tableHtml += "</tr></thead><tbody>";
 
   paginatedVariants.forEach(function (variant) {
-    tableHtml += "<tr>";
+    var isDisabled = variant.enabled === false;
+    tableHtml += "<tr" + (isDisabled ? ' style="opacity:0.6;"' : "") + ">";
     tableHtml +=
-      "<td><strong>" + (variant.modelNumber || "N/A") + "</strong></td>";
+      "<td><strong>" + (variant.modelNumber || "N/A") + "</strong>" +
+      (isDisabled ? ' <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">⊘ Disabled</span>' : "") + "</td>";
     if (hasCapacity) tableHtml += "<td>" + (variant.capacity || "-") + "</td>";
     if (hasLength) tableHtml += "<td>" + (variant.length || "-") + "</td>";
     if (hasEndConnection)
       tableHtml += "<td>" + (variant.endConnection || "-") + "</td>";
 
-    // 🆕 Add custom field values
+    // Add custom field values
     Array.from(customFieldNames).forEach((fieldName) => {
       const value = variant.customFields?.[fieldName] || "-";
       tableHtml += "<td>" + value + "</td>";
     });
+
+    // Price cell
+    if (hasPrice) {
+      if (isDisabled) {
+        tableHtml += '<td><span style="color:#9ca3af;font-size:0.85rem;">Not Available</span></td>';
+      } else if (variant.price !== null && variant.price !== undefined) {
+        tableHtml += "<td><strong>$" + variant.price.toFixed(2) + "</strong></td>";
+      } else {
+        tableHtml += "<td>—</td>";
+      }
+    }
 
     tableHtml += "</tr>";
   });
@@ -1392,6 +1427,111 @@ function showError(message) {
       '</p><a href="/" style="color: #3b82f6; text-decoration: underline; font-family: \'Open Sans\', sans-serif;">← Back to Home</a>' +
       "</div>";
   }
+}
+
+function showPreviewClaimModal(variant) {
+  // Remove existing modal if any
+  var existing = document.getElementById("preview-claim-modal");
+  if (existing) existing.remove();
+
+  var productSlug = getSlugFromURL();
+  var productTitle = document.querySelector('[data-product-detail="title"]')?.textContent || "";
+
+  var overlay = document.createElement("div");
+  overlay.id = "preview-claim-modal";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
+
+  overlay.innerHTML = [
+    '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">',
+        '<h2 style="font-family:Montserrat,sans-serif;font-size:1.25rem;font-weight:700;color:#1e3a8a;margin:0;">📄 Get Your Preview File</h2>',
+        '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;">×</button>',
+      '</div>',
+      '<p style="font-family:Open Sans,sans-serif;color:#6b7280;font-size:0.875rem;margin-bottom:1.25rem;">',
+        'Selected: <strong style="color:#1f2937;">' + (variant.modelNumber || "") + '</strong>',
+      '</p>',
+      '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
+      '<div style="margin-bottom:1rem;">',
+        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Full Name *</label>',
+        '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" />',
+      '</div>',
+      '<div style="margin-bottom:1.5rem;">',
+        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Email Address *</label>',
+        '<input id="modal-email" type="email" placeholder="jane@example.com" style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" />',
+      '</div>',
+      '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
+      '<div style="display:flex;gap:0.75rem;">',
+        '<button id="modal-submit-btn" style="flex:1;padding:0.75rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Claim Preview File</button>',
+        '<button id="modal-cancel-btn" style="padding:0.75rem 1.25rem;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Cancel</button>',
+      '</div>',
+    '</div>'
+  ].join("");
+
+  document.body.appendChild(overlay);
+
+  document.getElementById("modal-close-btn").onclick = function() { overlay.remove(); };
+  document.getElementById("modal-cancel-btn").onclick = function() { overlay.remove(); };
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  document.getElementById("modal-submit-btn").onclick = async function() {
+    var name = document.getElementById("modal-name").value.trim();
+    var email = document.getElementById("modal-email").value.trim();
+    var errorEl = document.getElementById("modal-error");
+    var successEl = document.getElementById("modal-success");
+    var submitBtn = document.getElementById("modal-submit-btn");
+
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    if (!name || !email) {
+      errorEl.textContent = "Please enter your name and email.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+
+    try {
+      var res = await fetch(API_URL + "/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          productSlug: productSlug,
+          productTitle: productTitle,
+          variantId: variant.id,
+          variantModel: variant.modelNumber,
+          previewFileLink: variant.previewFileLink,
+        }),
+      });
+      var data = await res.json();
+
+      if (data.success) {
+        successEl.innerHTML = "✅ Success! " +
+          (data.previewFileLink
+            ? 'Your preview file is ready: <a href="' + data.previewFileLink + '" target="_blank" style="color:#166534;font-weight:700;text-decoration:underline;">Open Preview File</a>'
+            : "We have recorded your request.");
+        successEl.style.display = "block";
+        submitBtn.style.display = "none";
+        document.getElementById("modal-cancel-btn").textContent = "Close";
+        if (data.previewFileLink) {
+          window.open(data.previewFileLink, "_blank");
+        }
+      } else {
+        errorEl.textContent = data.error || "Something went wrong. Please try again.";
+        errorEl.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Claim Preview File";
+      }
+    } catch (err) {
+      errorEl.textContent = "Network error. Please try again.";
+      errorEl.style.display = "block";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Claim Preview File";
+    }
+  };
 }
 
 // Initialize
