@@ -193,7 +193,8 @@ function renderContentBlocks(blocks) {
           const paragraphStyle =
             baseStyle +
             " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem;";
-          return '<p style="' + paragraphStyle + '">' + block.content + "</p>";
+          var paragraphContent = block.content.replace(/<a /gi, '<a target="_blank" rel="noopener noreferrer" ');
+          return '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>";
 
         case "list":
           const listTag = block.listType === "numbered" ? "ol" : "ul";

@@ -325,6 +325,11 @@ export default function BlockEditor({
       selection.addRange(savedRangeRef.current);
     }
     document.execCommand("createLink", false, linkUrl.trim());
+    // Ensure all links open in a new tab
+    el.querySelectorAll("a").forEach((a) => {
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener noreferrer");
+    });
     updateBlock(blockId, { content: el.innerHTML });
     setActiveLinkBlockId(null);
     setLinkUrl("");
