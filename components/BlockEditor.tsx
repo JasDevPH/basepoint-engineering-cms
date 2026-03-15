@@ -1,7 +1,7 @@
 // FILE: components/BlockEditor.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "@/components/Toast";
 import {
   Type,
@@ -100,6 +100,7 @@ export default function BlockEditor({
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
   const [activeLinkBlockId, setActiveLinkBlockId] = useState<string | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
+  const savedRangeRef = useRef<Range | null>(null);
 
   const addBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock = {
@@ -306,31 +307,43 @@ export default function BlockEditor({
   const handleTextSelection = (blockId: string) => {
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+      // Save the range NOW — before any click on the URL input steals focus
+      savedRangeRef.current = selection.getRangeAt(0).cloneRange();
       setActiveLinkBlockId(blockId);
       setLinkUrl("");
     }
   };
 
-  // onMouseDown with preventDefault keeps the contentEditable selection alive
   const applyLink = (blockId: string) => {
     if (!linkUrl.trim()) return;
     const el = document.getElementById(`paragraph-${blockId}`);
     if (!el) return;
-    el.focus();
+    // Restore the saved selection (lost when user clicked the URL input)
+    const selection = window.getSelection();
+    if (selection && savedRangeRef.current) {
+      selection.removeAllRanges();
+      selection.addRange(savedRangeRef.current);
+    }
     document.execCommand("createLink", false, linkUrl.trim());
     updateBlock(blockId, { content: el.innerHTML });
     setActiveLinkBlockId(null);
     setLinkUrl("");
+    savedRangeRef.current = null;
   };
 
   const removeLink = (blockId: string) => {
     const el = document.getElementById(`paragraph-${blockId}`);
     if (!el) return;
-    el.focus();
+    const selection = window.getSelection();
+    if (selection && savedRangeRef.current) {
+      selection.removeAllRanges();
+      selection.addRange(savedRangeRef.current);
+    }
     document.execCommand("unlink");
     updateBlock(blockId, { content: el.innerHTML });
     setActiveLinkBlockId(null);
     setLinkUrl("");
+    savedRangeRef.current = null;
   };
 
   const renderBlock = (block: ContentBlock, index: number) => {
@@ -364,7 +377,8 @@ export default function BlockEditor({
           </div>
         );
 
-      case "paragraph":
+      case "paragraph": {
+        const isActiveBlock = activeLinkBlockId === block.id;
         return (
           <div className="space-y-2">
             <ParagraphEditor
@@ -373,55 +387,74 @@ export default function BlockEditor({
               onContentChange={(html) => updateBlock(block.id, { content: html })}
               onMouseUp={() => handleTextSelection(block.id)}
             />
-            <p className="text-xs text-gray-400">
-              Select any text above, then use the link toolbar below to add a hyperlink.
-            </p>
-            {/* Inline link toolbar — always visible when this block is active */}
-            <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <Link className="w-4 h-4 text-blue-500 flex-shrink-0" />
-              <input
-                type="url"
-                value={activeLinkBlockId === block.id ? linkUrl : ""}
-                onFocus={() => setActiveLinkBlockId(block.id)}
-                onChange={(e) => {
-                  setActiveLinkBlockId(block.id);
-                  setLinkUrl(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+
+            {/* Link toolbar: expanded only for the block where text was selected */}
+            {isActiveBlock ? (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <Link className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <span className="text-xs text-blue-700 font-medium whitespace-nowrap">
+                  Text selected ✓
+                </span>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyLink(block.id);
+                    }
+                    if (e.key === "Escape") {
+                      setActiveLinkBlockId(null);
+                      setLinkUrl("");
+                      savedRangeRef.current = null;
+                    }
+                  }}
+                  placeholder="Paste URL and press Enter or click Apply..."
+                  className="flex-1 px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
                     e.preventDefault();
                     applyLink(block.id);
-                  }
-                }}
-                placeholder="Paste URL here, then click Apply Link..."
-                className="flex-1 px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              />
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  // preventDefault keeps the contentEditable selection alive
-                  e.preventDefault();
-                  applyLink(block.id);
-                }}
-                disabled={!linkUrl.trim()}
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap font-medium"
-              >
-                Apply Link
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  removeLink(block.id);
-                }}
-                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 whitespace-nowrap"
-                title="Remove link from selected text"
-              >
-                Remove Link
-              </button>
-            </div>
+                  }}
+                  disabled={!linkUrl.trim()}
+                  className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap font-medium"
+                >
+                  Apply Link
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    removeLink(block.id);
+                  }}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 whitespace-nowrap"
+                >
+                  Remove Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLinkBlockId(null);
+                    setLinkUrl("");
+                    savedRangeRef.current = null;
+                  }}
+                  className="p-1 hover:bg-blue-100 rounded text-blue-400"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">
+                Select text above to add a hyperlink.
+              </p>
+            )}
           </div>
         );
+      }
 
       case "list":
         return (
