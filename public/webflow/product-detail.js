@@ -851,15 +851,15 @@ function findSelectedVariant() {
 
     if (selectedVariant.price !== null && selectedVariant.price !== undefined) {
       priceDisplay.style.display = "block";
+      priceAmount.style.color = "";
+      priceAmount.style.fontSize = "";
+      priceAmount.style.fontWeight = "";
       priceAmount.textContent = "$" + selectedVariant.price.toFixed(2);
-      console.log("✓ Showing price:", selectedVariant.price);
     } else {
       priceDisplay.style.display = "none";
-      console.log("⚠ No price for variant");
     }
 
     purchaseBtn.disabled = false;
-    console.log("✓ Variant selected:", selectedVariant.modelNumber);
 
     // Show "Get Preview File" button if variant has a preview link
     if (selectedVariant.previewFileLink) {
@@ -872,11 +872,31 @@ function findSelectedVariant() {
       previewBtn.onclick = function() { showPreviewClaimModal(selectedVariant); };
       purchaseBtn.parentNode.insertBefore(previewBtn, purchaseBtn.nextSibling);
     }
+  } else if (allRequiredSelected) {
+    // All dropdowns are filled but the matching variant is disabled
+    variantInfo.style.display = "none";
+    priceDisplay.style.display = "block";
+    priceAmount.style.color = "#ef4444";
+    priceAmount.style.fontSize = "0.9rem";
+    priceAmount.style.fontWeight = "600";
+    priceAmount.style.background = "#fef2f2";
+    priceAmount.style.padding = "0.5rem 0.75rem";
+    priceAmount.style.borderRadius = "8px";
+    priceAmount.style.border = "1px solid #fecaca";
+    priceAmount.textContent = "⚠ Not Available — select a different variation";
+    purchaseBtn.disabled = true;
   } else {
     variantInfo.style.display = "none";
     priceDisplay.style.display = "none";
+    // Reset any "not available" styling
+    priceAmount.style.color = "";
+    priceAmount.style.fontSize = "";
+    priceAmount.style.fontWeight = "";
+    priceAmount.style.background = "";
+    priceAmount.style.padding = "";
+    priceAmount.style.borderRadius = "";
+    priceAmount.style.border = "";
     purchaseBtn.disabled = true;
-    console.log("✗ No matching variant found");
   }
 }
 
