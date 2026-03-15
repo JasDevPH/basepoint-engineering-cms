@@ -783,8 +783,9 @@ function findSelectedVariant() {
     return;
   }
 
-  // 🆕 Find variant matching all criteria including custom fields
+  // Find variant matching all criteria — skip disabled variants
   selectedVariant = allVariants.find((v) => {
+    if (v.enabled === false) return false;
     console.log("🔍 Checking variant:", v.modelNumber);
     console.log("  - Variant data:", v);
 
