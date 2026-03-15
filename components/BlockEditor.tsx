@@ -1,7 +1,7 @@
 // FILE: components/BlockEditor.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/Toast";
 import {
   Type,
@@ -52,6 +52,43 @@ export interface ContentBlock {
 interface BlockEditorProps {
   initialBlocks: ContentBlock[];
   onChange: (blocks: ContentBlock[]) => void;
+}
+
+// Separate component so innerHTML is only set once on mount — prevents cursor-jump bug
+function ParagraphEditor({
+  blockId,
+  initialContent,
+  onContentChange,
+  onMouseUp,
+}: {
+  blockId: string;
+  initialContent: string;
+  onContentChange: (html: string) => void;
+  onMouseUp: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Set innerHTML exactly once on mount
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.innerHTML = initialContent;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      id={`paragraph-${blockId}`}
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={(e) => onContentChange((e.target as HTMLDivElement).innerHTML)}
+      onMouseUp={onMouseUp}
+      onKeyUp={onMouseUp}
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      style={{ lineHeight: "1.6" }}
+    />
+  );
 }
 
 export default function BlockEditor({
@@ -330,20 +367,11 @@ export default function BlockEditor({
       case "paragraph":
         return (
           <div className="space-y-2">
-            <div
-              id={`paragraph-${block.id}`}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) =>
-                updateBlock(block.id, {
-                  content: (e.target as HTMLDivElement).innerHTML,
-                })
-              }
+            <ParagraphEditor
+              blockId={block.id}
+              initialContent={block.content}
+              onContentChange={(html) => updateBlock(block.id, { content: html })}
               onMouseUp={() => handleTextSelection(block.id)}
-              onKeyUp={() => handleTextSelection(block.id)}
-              dangerouslySetInnerHTML={{ __html: block.content }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              style={{ lineHeight: "1.6" }}
             />
             <p className="text-xs text-gray-400">
               Select any text above, then use the link toolbar below to add a hyperlink.
