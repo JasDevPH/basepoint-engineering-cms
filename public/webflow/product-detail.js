@@ -844,16 +844,19 @@ function findSelectedVariant() {
   var existingPreviewBtn = document.getElementById("preview-btn");
   if (existingPreviewBtn) existingPreviewBtn.remove();
 
+  var priceLabel = priceDisplay.querySelector(".price-label");
+
   if (selectedVariant) {
     variantInfo.style.display = "block";
     modelNumber.textContent =
       selectedVariant.modelNumber || "Model: " + selectedVariant.capacity;
 
+    // Restore normal price label visibility
+    if (priceLabel) priceLabel.style.display = "";
+    priceAmount.removeAttribute("style");
+
     if (selectedVariant.price !== null && selectedVariant.price !== undefined) {
       priceDisplay.style.display = "block";
-      priceAmount.style.color = "";
-      priceAmount.style.fontSize = "";
-      priceAmount.style.fontWeight = "";
       priceAmount.textContent = "$" + selectedVariant.price.toFixed(2);
     } else {
       priceDisplay.style.display = "none";
@@ -873,29 +876,18 @@ function findSelectedVariant() {
       purchaseBtn.parentNode.insertBefore(previewBtn, purchaseBtn.nextSibling);
     }
   } else if (allRequiredSelected) {
-    // All dropdowns are filled but the matching variant is disabled
+    // All dropdowns filled but matching variant is disabled — show "Not Available"
     variantInfo.style.display = "none";
+    if (priceLabel) priceLabel.style.display = "none";
     priceDisplay.style.display = "block";
-    priceAmount.style.color = "#ef4444";
-    priceAmount.style.fontSize = "0.9rem";
-    priceAmount.style.fontWeight = "600";
-    priceAmount.style.background = "#fef2f2";
-    priceAmount.style.padding = "0.5rem 0.75rem";
-    priceAmount.style.borderRadius = "8px";
-    priceAmount.style.border = "1px solid #fecaca";
     priceAmount.textContent = "⚠ Not Available — select a different variation";
+    priceAmount.style.cssText = "color:#ef4444;font-size:0.9rem;font-weight:600;background:#fef2f2;padding:0.5rem 0.75rem;border-radius:8px;border:1px solid #fecaca;display:inline-block;";
     purchaseBtn.disabled = true;
   } else {
     variantInfo.style.display = "none";
     priceDisplay.style.display = "none";
-    // Reset any "not available" styling
-    priceAmount.style.color = "";
-    priceAmount.style.fontSize = "";
-    priceAmount.style.fontWeight = "";
-    priceAmount.style.background = "";
-    priceAmount.style.padding = "";
-    priceAmount.style.borderRadius = "";
-    priceAmount.style.border = "";
+    if (priceLabel) priceLabel.style.display = "";
+    priceAmount.removeAttribute("style");
     purchaseBtn.disabled = true;
   }
 }
