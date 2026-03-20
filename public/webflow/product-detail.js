@@ -1474,9 +1474,9 @@ function showPreviewClaimModal(variant) {
 
       // Trust signals
       '<div style="display:flex;gap:1.25rem;margin-bottom:1.25rem;">',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ Instant delivery</span>',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ No spam, ever</span>',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ Free</span>',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Instant delivery</span>',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> No spam, ever</span>',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Free</span>',
       '</div>',
 
       // Error
