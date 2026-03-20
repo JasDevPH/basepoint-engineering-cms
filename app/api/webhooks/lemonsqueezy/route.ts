@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { sendOrderConfirmationEmail, sendOrderNotificationEmail } from "@/lib/email";
 
 // Verify webhook signature
 function verifySignature(
@@ -191,6 +192,31 @@ async function handleOrderCreated(payload: any) {
     });
 
     console.log("✅ Order item created");
+
+    // Send confirmation email to customer and notification to admin
+    const finalProductName = customData.productTitle || product.title;
+    const finalVariantName = customData.modelNumber || variant?.modelNumber || null;
+    sendOrderConfirmationEmail({
+      toName: customerName,
+      toEmail: customerEmail,
+      orderNumber,
+      productName: finalProductName,
+      variantName: finalVariantName,
+      totalAmount,
+      currency,
+    }).catch((err) => console.error("Order confirmation email failed:", err));
+
+    sendOrderNotificationEmail({
+      customerName,
+      customerEmail,
+      orderNumber,
+      productName: finalProductName,
+      variantName: finalVariantName,
+      totalAmount,
+      currency,
+      paymentProvider: "lemonsqueezy",
+    }).catch((err) => console.error("Order notification email failed:", err));
+
     console.log("🎉 Order processing complete!");
     console.log("===\n");
   } catch (error) {

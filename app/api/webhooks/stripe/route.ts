@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
+import { sendOrderConfirmationEmail, sendOrderNotificationEmail } from "@/lib/email";
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -250,6 +251,33 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       },
     });
     console.log("✅ Order item created with variant:", variantName || "N/A");
+
+    // Send confirmation email to customer and notification to admin
+    const finalProductName = product?.title || productName;
+    console.log("📧 Sending order emails...");
+    await Promise.all([
+      sendOrderConfirmationEmail({
+        toName: customerName,
+        toEmail: customerEmail,
+        orderNumber,
+        productName: finalProductName,
+        variantName: variantName || null,
+        totalAmount,
+        currency,
+      }).catch((err) => console.error("❌ Order confirmation email failed:", err)),
+
+      sendOrderNotificationEmail({
+        customerName,
+        customerEmail,
+        orderNumber,
+        productName: finalProductName,
+        variantName: variantName || null,
+        totalAmount,
+        currency,
+        paymentProvider: "stripe",
+      }).catch((err) => console.error("❌ Order notification email failed:", err)),
+    ]);
+    console.log("✅ Order emails sent");
 
     console.log("🎉 Stripe order processing complete!");
     console.log("===\n");
