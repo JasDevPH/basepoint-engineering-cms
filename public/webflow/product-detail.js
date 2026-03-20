@@ -1549,10 +1549,8 @@ function showPreviewClaimModal(variant) {
       var data = await res.json();
 
       if (data.success) {
-        successEl.innerHTML = "✅ Check your email! We've sent you the preview file and a checkout link.";
-        successEl.style.display = "block";
-        submitBtn.style.display = "none";
-        document.getElementById("modal-cancel-btn").textContent = "Close";
+        overlay.remove();
+        showPreviewSuccessModal(name);
       } else {
         errorEl.textContent = data.error || "Something went wrong. Please try again.";
         errorEl.style.display = "block";
@@ -1566,6 +1564,43 @@ function showPreviewClaimModal(variant) {
       submitBtn.textContent = "Send Me the Drawing →";
     }
   };
+}
+
+function showPreviewSuccessModal(name) {
+  var popup = document.createElement("div");
+  popup.id = "preview-success-modal";
+  popup.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
+
+  popup.innerHTML = [
+    '<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25);text-align:center;">',
+
+      // Icon
+      '<div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">🎉</div>',
+
+      // Label
+      '<p style="font-family:Montserrat,sans-serif;font-size:0.7rem;font-weight:700;color:#16a34a;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.5rem;">You\'re all set</p>',
+
+      // Headline
+      '<h2 style="font-family:Montserrat,sans-serif;font-size:1.4rem;font-weight:700;color:#111827;margin:0 0 0.75rem;line-height:1.3;">Congratulations, ' + name + '!</h2>',
+
+      // Body
+      '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.65;margin:0 0 1.75rem;">',
+        'Your engineering drawing is on its way. Check your inbox — we\'ve also included a direct checkout link so you can move forward whenever you\'re ready.',
+      '</p>',
+
+      // Close button
+      '<button id="success-close-btn" style="width:100%;padding:0.85rem;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Got it, thanks!</button>',
+
+      // Microcopy
+      '<p style="font-family:Open Sans,sans-serif;font-size:0.72rem;color:#9ca3af;margin:0.875rem 0 0;">Didn\'t receive it? Check your spam folder.</p>',
+
+    '</div>'
+  ].join("");
+
+  document.body.appendChild(popup);
+
+  document.getElementById("success-close-btn").onclick = function() { popup.remove(); };
+  popup.onclick = function(e) { if (e.target === popup) popup.remove(); };
 }
 
 // Initialize

@@ -30,33 +30,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const emailPromises: Promise<void>[] = [];
-
+    // Send preview email to customer and capture result
     if (lead.previewFileLink) {
-      emailPromises.push(
-        sendPreviewFileEmail({
+      try {
+        const emailId = await sendPreviewFileEmail({
           toName: name,
           toEmail: email,
           productTitle: productTitle || "Product",
           variantModel: variantModel || "Variant",
           previewFileLink: lead.previewFileLink,
           checkoutLink: checkoutLink || undefined,
-        }).catch((err) => console.error("Preview email failed:", err))
-      );
+        });
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: { emailSentAt: new Date(), emailId: emailId || null },
+        });
+      } catch (err) {
+        console.error("Preview email failed:", err);
+      }
     }
 
-    emailPromises.push(
-      sendLeadNotificationEmail({
-        name,
-        email,
-        productTitle: productTitle || null,
-        variantModel: variantModel || null,
-        previewFileLink: lead.previewFileLink,
-        claimedAt: lead.claimedAt,
-      }).catch((err) => console.error("Lead notification email failed:", err))
-    );
-
-    await Promise.all(emailPromises);
+    // Send admin notification (fire and forget)
+    sendLeadNotificationEmail({
+      name,
+      email,
+      productTitle: productTitle || null,
+      variantModel: variantModel || null,
+      previewFileLink: lead.previewFileLink,
+      claimedAt: lead.claimedAt,
+    }).catch((err) => console.error("Lead notification email failed:", err));
 
     return NextResponse.json(
       { success: true, previewFileLink: lead.previewFileLink },

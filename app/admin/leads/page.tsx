@@ -14,6 +14,9 @@ interface Lead {
   variantModel: string | null;
   previewFileLink: string | null;
   claimedAt: string;
+  emailSentAt: string | null;
+  emailId: string | null;
+  emailClickedAt: string | null;
 }
 
 export default function LeadsPage() {
@@ -147,6 +150,12 @@ export default function LeadsPage() {
                         Preview Link
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        Email Sent
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        Link Clicked
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                         Date Claimed
                       </th>
                     </tr>
@@ -179,6 +188,31 @@ export default function LeadsPage() {
                             </a>
                           ) : (
                             <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {lead.emailSentAt ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                              Sent
+                            </span>
+                          ) : lead.previewFileLink ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                              Failed
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {lead.emailClickedAt ? (
+                            <span title={formatDate(lead.emailClickedAt)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                              Clicked
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500">

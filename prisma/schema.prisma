@@ -202,7 +202,7 @@ model OrderItem {
 }
 
 model Lead {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   name            String
   email           String
   productSlug     String?
@@ -210,7 +210,10 @@ model Lead {
   variantId       String?
   variantModel    String?
   previewFileLink String?
-  claimedAt       DateTime @default(now())
+  claimedAt       DateTime  @default(now())
+  emailSentAt     DateTime?
+  emailId         String?
+  emailClickedAt  DateTime?
 
   @@index([email])
   @@index([claimedAt])

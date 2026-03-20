@@ -20,7 +20,7 @@ interface SendLeadNotificationEmailParams {
   claimedAt: Date;
 }
 
-export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): Promise<void> {
+export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): Promise<string> {
   const { toName, toEmail, productTitle, variantModel, previewFileLink, checkoutLink } = params;
 
   const checkoutSection = checkoutLink
@@ -35,7 +35,7 @@ export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): 
       `
     : "";
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: "Basepoint Engineering <mail@notify.basepointengineering.com>",
     to: toEmail,
     subject: `Your Preview File — ${productTitle} (${variantModel})`,
@@ -56,6 +56,12 @@ export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): 
       </div>
     `,
   });
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  return result.data?.id ?? "";
 }
 
 export async function sendLeadNotificationEmail(params: SendLeadNotificationEmailParams): Promise<void> {
