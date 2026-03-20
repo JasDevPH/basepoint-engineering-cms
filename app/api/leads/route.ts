@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { corsHeaders } from "@/lib/cors";
+import { sendPreviewFileEmail, sendLeadNotificationEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,33 @@ export async function POST(request: NextRequest) {
         previewFileLink: previewFileLink || null,
       },
     });
+
+    const emailPromises: Promise<void>[] = [];
+
+    if (lead.previewFileLink) {
+      emailPromises.push(
+        sendPreviewFileEmail({
+          toName: name,
+          toEmail: email,
+          productTitle: productTitle || "Product",
+          variantModel: variantModel || "Variant",
+          previewFileLink: lead.previewFileLink,
+        }).catch((err) => console.error("Preview email failed:", err))
+      );
+    }
+
+    emailPromises.push(
+      sendLeadNotificationEmail({
+        name,
+        email,
+        productTitle: productTitle || null,
+        variantModel: variantModel || null,
+        previewFileLink: lead.previewFileLink,
+        claimedAt: lead.claimedAt,
+      }).catch((err) => console.error("Lead notification email failed:", err))
+    );
+
+    await Promise.all(emailPromises);
 
     return NextResponse.json(
       { success: true, previewFileLink: lead.previewFileLink },
