@@ -1450,28 +1450,59 @@ function showPreviewClaimModal(variant) {
   overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
 
   overlay.innerHTML = [
-    '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">',
-        '<h2 style="font-family:Montserrat,sans-serif;font-size:1.25rem;font-weight:700;color:#1e3a8a;margin:0;">📄 Get a Preview of This File?</h2>',
-        '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;">×</button>',
+    '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
+
+      // Header
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">',
+        '<div>',
+          '<p style="font-family:Montserrat,sans-serif;font-size:0.75rem;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.35rem;">Good News</p>',
+          '<h2 style="font-family:Montserrat,sans-serif;font-size:1.3rem;font-weight:700;color:#111827;margin:0;line-height:1.3;">Your engineering drawing is ready — want us to send it?</h2>',
+        '</div>',
+        '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;margin-left:1rem;flex-shrink:0;">×</button>',
       '</div>',
-      '<p style="font-family:Open Sans,sans-serif;color:#6b7280;font-size:0.875rem;margin-bottom:1.25rem;">',
-        'Enter your name and email and we\'ll send you a preview of <strong style="color:#1f2937;">' + (variant.modelNumber || "") + '</strong> along with a checkout link.',
+
+      // Variant badge
+      '<div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0.35rem 0.75rem;margin-bottom:1rem;">',
+        '<span style="font-size:0.75rem;color:#1d4ed8;font-family:Open Sans,sans-serif;">Selected:</span>',
+        '<span style="font-size:0.8rem;font-weight:700;color:#1e3a8a;font-family:Montserrat,sans-serif;">' + (variant.modelNumber || "") + '</span>',
+      '</div>',
+
+      // Body copy
+      '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.6;margin:0 0 1.25rem;">',
+        'We\'ve prepared a detailed engineering drawing for this variant. Drop your details below and we\'ll email it to you instantly — along with a direct checkout link so you\'re ready to order when you are.',
       '</p>',
+
+      // Trust signals
+      '<div style="display:flex;gap:1.25rem;margin-bottom:1.25rem;">',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ Instant delivery</span>',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ No spam, ever</span>',
+        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">✓ Free</span>',
+      '</div>',
+
+      // Error
       '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
-      '<div style="margin-bottom:1rem;">',
-        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Full Name *</label>',
-        '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" />',
+
+      // Name field
+      '<div style="margin-bottom:0.875rem;">',
+        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Full Name *</label>',
+        '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
       '</div>',
+
+      // Email field
       '<div style="margin-bottom:1.5rem;">',
-        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Email Address *</label>',
-        '<input id="modal-email" type="email" placeholder="jane@example.com" style="width:100%;box-sizing:border-box;padding:0.6rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" />',
+        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Work Email *</label>',
+        '<input id="modal-email" type="email" placeholder="jane@company.com" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
       '</div>',
+
+      // Success
       '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
+
+      // Buttons
       '<div style="display:flex;gap:0.75rem;">',
-        '<button id="modal-submit-btn" style="flex:1;padding:0.75rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Send Me the Preview</button>',
-        '<button id="modal-cancel-btn" style="padding:0.75rem 1.25rem;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">No Thanks</button>',
+        '<button id="modal-submit-btn" style="flex:1;padding:0.8rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Send Me the Drawing →</button>',
+        '<button id="modal-cancel-btn" style="padding:0.8rem 1.1rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.85rem;cursor:pointer;">Maybe Later</button>',
       '</div>',
+
     '</div>'
   ].join("");
 
@@ -1498,7 +1529,7 @@ function showPreviewClaimModal(variant) {
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Sending...";
+    submitBtn.textContent = "Sending your specs...";
 
     try {
       var res = await fetch(API_URL + "/api/leads", {
@@ -1526,13 +1557,13 @@ function showPreviewClaimModal(variant) {
         errorEl.textContent = data.error || "Something went wrong. Please try again.";
         errorEl.style.display = "block";
         submitBtn.disabled = false;
-        submitBtn.textContent = "Send Me the Preview";
+        submitBtn.textContent = "Send Me the Drawing →";
       }
     } catch (err) {
       errorEl.textContent = "Network error. Please try again.";
       errorEl.style.display = "block";
       submitBtn.disabled = false;
-      submitBtn.textContent = "Send Me the Preview";
+      submitBtn.textContent = "Send Me the Drawing →";
     }
   };
 }
