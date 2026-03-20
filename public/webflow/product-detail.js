@@ -864,16 +864,9 @@ function findSelectedVariant() {
 
     purchaseBtn.disabled = false;
 
-    // Show "Get Preview File" button if variant has a preview link
+    // Auto-show preview modal if variant has a preview link
     if (selectedVariant.previewFileLink) {
-      var previewBtn = document.createElement("button");
-      previewBtn.id = "preview-btn";
-      previewBtn.className = "configurator-cta";
-      previewBtn.style.marginTop = "10px";
-      previewBtn.style.background = "#1e3a8a";
-      previewBtn.innerHTML = "📄 Get Preview File";
-      previewBtn.onclick = function() { showPreviewClaimModal(selectedVariant); };
-      purchaseBtn.parentNode.insertBefore(previewBtn, purchaseBtn.nextSibling);
+      showPreviewClaimModal(selectedVariant);
     }
   } else if (allRequiredSelected) {
     // All dropdowns filled but matching variant is disabled — show "Not Available"
@@ -1450,6 +1443,7 @@ function showPreviewClaimModal(variant) {
 
   var productSlug = getSlugFromURL();
   var productTitle = document.querySelector('[data-product-detail="title"]')?.textContent || "";
+  var checkoutLink = currentProductStripePaymentLink || window.location.href;
 
   var overlay = document.createElement("div");
   overlay.id = "preview-claim-modal";
@@ -1457,12 +1451,12 @@ function showPreviewClaimModal(variant) {
 
   overlay.innerHTML = [
     '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">',
-        '<h2 style="font-family:Montserrat,sans-serif;font-size:1.25rem;font-weight:700;color:#1e3a8a;margin:0;">📄 Get Your Preview File</h2>',
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">',
+        '<h2 style="font-family:Montserrat,sans-serif;font-size:1.25rem;font-weight:700;color:#1e3a8a;margin:0;">📄 Get a Preview of This File?</h2>',
         '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;">×</button>',
       '</div>',
       '<p style="font-family:Open Sans,sans-serif;color:#6b7280;font-size:0.875rem;margin-bottom:1.25rem;">',
-        'Selected: <strong style="color:#1f2937;">' + (variant.modelNumber || "") + '</strong>',
+        'Enter your name and email and we\'ll send you a preview of <strong style="color:#1f2937;">' + (variant.modelNumber || "") + '</strong> along with a checkout link.',
       '</p>',
       '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
       '<div style="margin-bottom:1rem;">',
@@ -1475,8 +1469,8 @@ function showPreviewClaimModal(variant) {
       '</div>',
       '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
       '<div style="display:flex;gap:0.75rem;">',
-        '<button id="modal-submit-btn" style="flex:1;padding:0.75rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Claim Preview File</button>',
-        '<button id="modal-cancel-btn" style="padding:0.75rem 1.25rem;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Cancel</button>',
+        '<button id="modal-submit-btn" style="flex:1;padding:0.75rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">Send Me the Preview</button>',
+        '<button id="modal-cancel-btn" style="padding:0.75rem 1.25rem;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">No Thanks</button>',
       '</div>',
     '</div>'
   ].join("");
@@ -1504,7 +1498,7 @@ function showPreviewClaimModal(variant) {
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
+    submitBtn.textContent = "Sending...";
 
     try {
       var res = await fetch(API_URL + "/api/leads", {
@@ -1518,32 +1512,27 @@ function showPreviewClaimModal(variant) {
           variantId: variant.id,
           variantModel: variant.modelNumber,
           previewFileLink: variant.previewFileLink,
+          checkoutLink: checkoutLink,
         }),
       });
       var data = await res.json();
 
       if (data.success) {
-        successEl.innerHTML = "✅ Success! " +
-          (data.previewFileLink
-            ? 'Your preview file is ready: <a href="' + data.previewFileLink + '" target="_blank" style="color:#166534;font-weight:700;text-decoration:underline;">Open Preview File</a>'
-            : "We have recorded your request.");
+        successEl.innerHTML = "✅ Check your email! We've sent you the preview file and a checkout link.";
         successEl.style.display = "block";
         submitBtn.style.display = "none";
         document.getElementById("modal-cancel-btn").textContent = "Close";
-        if (data.previewFileLink) {
-          window.open(data.previewFileLink, "_blank");
-        }
       } else {
         errorEl.textContent = data.error || "Something went wrong. Please try again.";
         errorEl.style.display = "block";
         submitBtn.disabled = false;
-        submitBtn.textContent = "Claim Preview File";
+        submitBtn.textContent = "Send Me the Preview";
       }
     } catch (err) {
       errorEl.textContent = "Network error. Please try again.";
       errorEl.style.display = "block";
       submitBtn.disabled = false;
-      submitBtn.textContent = "Claim Preview File";
+      submitBtn.textContent = "Send Me the Preview";
     }
   };
 }

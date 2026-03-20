@@ -6,7 +6,7 @@ import { sendPreviewFileEmail, sendLeadNotificationEmail } from "@/lib/email";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, productSlug, productTitle, variantId, variantModel, previewFileLink } = body;
+    const { name, email, productSlug, productTitle, variantId, variantModel, previewFileLink, checkoutLink } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
           productTitle: productTitle || "Product",
           variantModel: variantModel || "Variant",
           previewFileLink: lead.previewFileLink,
+          checkoutLink: checkoutLink || undefined,
         }).catch((err) => console.error("Preview email failed:", err))
       );
     }

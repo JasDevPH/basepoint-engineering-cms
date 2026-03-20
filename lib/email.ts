@@ -8,6 +8,7 @@ interface SendPreviewFileEmailParams {
   productTitle: string;
   variantModel: string;
   previewFileLink: string;
+  checkoutLink?: string;
 }
 
 interface SendLeadNotificationEmailParams {
@@ -20,11 +21,23 @@ interface SendLeadNotificationEmailParams {
 }
 
 export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): Promise<void> {
-  const { toName, toEmail, productTitle, variantModel, previewFileLink } = params;
+  const { toName, toEmail, productTitle, variantModel, previewFileLink, checkoutLink } = params;
+
+  const checkoutSection = checkoutLink
+    ? `
+        <div style="margin-top: 16px;">
+          <a href="${checkoutLink}"
+             style="background-color: #1e3a8a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            Purchase — ${variantModel}
+          </a>
+        </div>
+        <p style="color: #888; font-size: 13px; margin-top: 8px;">Or copy this checkout link: <span style="word-break: break-all;">${checkoutLink}</span></p>
+      `
+    : "";
 
   await resend.emails.send({
     from: "Basepoint Engineering <mail@notify.basepointengineering.com>",
-    to: "jay@basepointengineering.com", // temp: replace with toEmail in production
+    to: toEmail,
     subject: `Your Preview File — ${productTitle} (${variantModel})`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
@@ -35,9 +48,9 @@ export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): 
              style="background-color: #1a1a1a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             Open Preview File
           </a>
+          ${checkoutSection}
         </div>
-        <p style="color: #888; font-size: 13px;">If the button above doesn't work, copy and paste this link into your browser:</p>
-        <p style="color: #888; font-size: 13px; word-break: break-all;">${previewFileLink}</p>
+        <p style="color: #888; font-size: 13px;">If the preview button doesn't work, copy and paste this link: <span style="word-break: break-all;">${previewFileLink}</span></p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
         <p style="color: #aaa; font-size: 12px;">Basepoint Engineering · basepoint.engineering</p>
       </div>
