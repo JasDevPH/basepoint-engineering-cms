@@ -20,8 +20,17 @@ interface SendLeadNotificationEmailParams {
   claimedAt: Date;
 }
 
-export async function sendPreviewFileEmail(params: SendPreviewFileEmailParams): Promise<string> {
-  const { toName, toEmail, productTitle, variantModel, previewFileLink, checkoutLink } = params;
+export async function sendPreviewFileEmail(
+  params: SendPreviewFileEmailParams,
+): Promise<string> {
+  const {
+    toName,
+    toEmail,
+    productTitle,
+    variantModel,
+    previewFileLink,
+    checkoutLink,
+  } = params;
 
   const checkoutSection = checkoutLink
     ? `
@@ -85,8 +94,18 @@ interface SendOrderNotificationEmailParams {
   paymentProvider: string;
 }
 
-export async function sendOrderConfirmationEmail(params: SendOrderConfirmationEmailParams): Promise<void> {
-  const { toName, toEmail, orderNumber, productName, variantName, totalAmount, currency } = params;
+export async function sendOrderConfirmationEmail(
+  params: SendOrderConfirmationEmailParams,
+): Promise<void> {
+  const {
+    toName,
+    toEmail,
+    orderNumber,
+    productName,
+    variantName,
+    totalAmount,
+    currency,
+  } = params;
 
   const displayName = toName || "there";
   const variantRow = variantName
@@ -137,20 +156,32 @@ export async function sendOrderConfirmationEmail(params: SendOrderConfirmationEm
   }
 }
 
-export async function sendOrderNotificationEmail(params: SendOrderNotificationEmailParams): Promise<void> {
-  const { customerName, customerEmail, orderNumber, productName, variantName, totalAmount, currency, paymentProvider } = params;
+export async function sendOrderNotificationEmail(
+  params: SendOrderNotificationEmailParams,
+): Promise<void> {
+  const {
+    customerName,
+    customerEmail,
+    orderNumber,
+    productName,
+    variantName,
+    totalAmount,
+    currency,
+    paymentProvider,
+  } = params;
 
   const variantRow = variantName
     ? `<tr><td style="padding:8px 12px;color:#555;border-bottom:1px solid #eee;font-weight:bold;width:160px;">Variant</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${variantName}</td></tr>`
     : "";
 
-  const providerBadge = paymentProvider === "stripe"
-    ? `<span style="background:#635bff;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">Stripe</span>`
-    : `<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">Lemon Squeezy</span>`;
+  const providerBadge =
+    paymentProvider === "stripe"
+      ? `<span style="background:#635bff;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">Stripe</span>`
+      : `<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">Lemon Squeezy</span>`;
 
   const notifyResult = await resend.emails.send({
     from: "Basepoint System <system@notify.basepointengineering.com>",
-    to: "jay@basepointengineering.com",
+    to: "osm@basepointengineering.com",
     subject: `💰 New Order: ${customerName || customerEmail} — ${productName}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
@@ -192,8 +223,17 @@ export async function sendOrderNotificationEmail(params: SendOrderNotificationEm
   }
 }
 
-export async function sendLeadNotificationEmail(params: SendLeadNotificationEmailParams): Promise<void> {
-  const { name, email, productTitle, variantModel, previewFileLink, claimedAt } = params;
+export async function sendLeadNotificationEmail(
+  params: SendLeadNotificationEmailParams,
+): Promise<void> {
+  const {
+    name,
+    email,
+    productTitle,
+    variantModel,
+    previewFileLink,
+    claimedAt,
+  } = params;
 
   const formattedDate = claimedAt.toLocaleString("en-US", {
     dateStyle: "medium",
@@ -207,7 +247,7 @@ export async function sendLeadNotificationEmail(params: SendLeadNotificationEmai
 
   await resend.emails.send({
     from: "Basepoint System <system@notify.basepointengineering.com>",
-    to: "jay@basepointengineering.com",
+    to: "osm@basepointengineering.com",
     subject: `New Lead: ${name} requested ${productTitle ?? "a product"}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
