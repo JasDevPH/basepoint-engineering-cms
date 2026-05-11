@@ -267,11 +267,11 @@ function displayProductDetail(product) {
     imgEl.style.borderRadius = "8px";
 
     if (window.innerWidth <= 768) {
-      // Mobile: center image with reasonable size
-      imgEl.style.width = "auto";
-      imgEl.style.maxWidth = "85%";
+      // Mobile: near-full width with small side margins
+      imgEl.style.width = "calc(100% - 1.5rem)";
+      imgEl.style.maxWidth = "calc(100% - 1.5rem)";
       imgEl.style.display = "block";
-      imgEl.style.margin = "1.5rem auto";
+      imgEl.style.margin = "1rem auto";
     } else {
       imgEl.style.width = "100%";
     }
