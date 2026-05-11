@@ -103,8 +103,9 @@ function displayBlogDetail(blog) {
     imgEl.src = blog.imageUrl + "?t=" + new Date().getTime();
     imgEl.alt = blog.title;
     imgEl.style.width = "100%";
-    imgEl.style.height = "auto";
+    imgEl.style.height = window.innerWidth <= 768 ? "260px" : "420px";
     imgEl.style.objectFit = "cover";
+    imgEl.style.borderRadius = "0";
     console.log("✓ Image updated");
   }
 
