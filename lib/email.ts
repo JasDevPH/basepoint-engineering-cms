@@ -182,6 +182,7 @@ export async function sendOrderNotificationEmail(
   const notifyResult = await resend.emails.send({
     from: "Basepoint System <system@notify.basepointengineering.com>",
     to: "osm@basepointengineering.com",
+    cc: "jason@basepointengineering.com",
     subject: `💰 New Order: ${customerName || customerEmail} — ${productName}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
