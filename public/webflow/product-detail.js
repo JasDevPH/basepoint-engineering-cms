@@ -319,7 +319,7 @@ function displaySimplePriceBox(product) {
   html += '<div class="variant-price-info" style="display: block;">';
   html += '<div class="price-label">Price:</div>';
   html +=
-    '<div class="price-amount">$' + product.basePrice.toFixed(2) + "</div>";
+    '<div class="price-amount">CA$' + product.basePrice.toFixed(2) + "</div>";
   html += "</div>";
   html +=
     '<button class="configurator-cta" onclick="handleSimplePurchase(\'' +
@@ -857,7 +857,7 @@ function findSelectedVariant() {
 
     if (selectedVariant.price !== null && selectedVariant.price !== undefined) {
       priceDisplay.style.display = "block";
-      priceAmount.textContent = "$" + selectedVariant.price.toFixed(2);
+      priceAmount.textContent = "CA$" + selectedVariant.price.toFixed(2);
     } else {
       priceDisplay.style.display = "none";
     }
@@ -1273,7 +1273,7 @@ function displayVariants(variants) {
       if (isDisabled) {
         tableHtml += '<td><span style="color:#9ca3af;font-size:0.85rem;">Not Available</span></td>';
       } else if (variant.price !== null && variant.price !== undefined) {
-        tableHtml += "<td><strong>$" + variant.price.toFixed(2) + "</strong></td>";
+        tableHtml += "<td><strong>CA$" + variant.price.toFixed(2) + "</strong></td>";
       } else {
         tableHtml += "<td>—</td>";
       }
