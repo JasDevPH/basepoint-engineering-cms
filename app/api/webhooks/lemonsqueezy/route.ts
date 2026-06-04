@@ -87,7 +87,7 @@ async function handleOrderCreated(payload: any) {
     const customerEmail = attributes.user_email;
     const customerName = attributes.user_name || null;
     const totalAmount = attributes.total / 100;
-    const currency = attributes.currency || "USD";
+    const currency = attributes.currency || "CAD";
     const orderStatus = attributes.status;
     const isPaid = orderStatus === "paid";
 

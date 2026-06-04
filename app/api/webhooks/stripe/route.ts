@@ -104,7 +104,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const customerEmail = session.customer_details?.email || session.customer_email || "unknown@email.com";
     const customerName = session.customer_details?.name || null;
     const totalAmount = (session.amount_total || 0) / 100;
-    const currency = session.currency?.toUpperCase() || "USD";
+    const currency = session.currency?.toUpperCase() || "CAD";
     const isPaid = session.payment_status === "paid";
 
     // Try to find the product
