@@ -1,6 +1,19 @@
 // FILE: public/webflow/product-detail.js
 
 const API_URL = "https://cms.basepointengineering.com"; // Change to production URL when deploying
+
+// Helper to set or create a meta tag
+function setMetaTag(property, content) {
+  if (!content) return;
+  var tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
+  if (!tag) {
+    tag = document.createElement('meta');
+    if (property.indexOf('og:') === 0) tag.setAttribute('property', property);
+    else tag.setAttribute('name', property);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute('content', content);
+}
 let allVariants = [];
 let selectedVariant = null;
 let currentPage = 1;
@@ -249,6 +262,16 @@ function displayProductDetail(product) {
     ? product.description.replace(/<[^>]*>/g, '').substring(0, 160).trim()
     : '')
     || product.title + ' — ' + (product.category || '') + ' | Basepoint Engineering below-the-hook lifting equipment.';
+
+  // Update OG / Twitter tags for social sharing
+  setMetaTag('og:title', product.title + ' - Basepoint Engineering');
+  setMetaTag('twitter:title', product.title + ' - Basepoint Engineering');
+  setMetaTag('og:description', metaDesc.content);
+  setMetaTag('twitter:description', metaDesc.content);
+  setMetaTag('og:url', window.location.href);
+  setMetaTag('og:type', 'product');
+  if (product.imageUrl) setMetaTag('og:image', product.imageUrl);
+  if (product.imageUrl) setMetaTag('twitter:image', product.imageUrl);
 
   const titleEl = document.querySelector('[data-product-detail="title"]');
   if (titleEl) {

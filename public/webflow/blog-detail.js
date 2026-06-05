@@ -1,5 +1,18 @@
 const API_URL = "https://cms.basepointengineering.com";
 
+// Helper to set or create a meta tag
+function setMetaTag(property, content) {
+  if (!content) return;
+  var tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
+  if (!tag) {
+    tag = document.createElement('meta');
+    if (property.indexOf('og:') === 0) tag.setAttribute('property', property);
+    else tag.setAttribute('name', property);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute('content', content);
+}
+
 // Create and show loading screen
 function showLoading() {
   const existingLoader = document.getElementById("blog-loading-screen");
@@ -98,6 +111,16 @@ function displayBlogDetail(blog) {
   metaDesc.content = blog.excerpt
     || (blog.content ? blog.content.replace(/<[^>]*>/g, '').substring(0, 155).trim() + '...' : '')
     || 'Read ' + blog.title + ' on the Basepoint Engineering blog — industry insights on lifting equipment, below-the-hook devices, and engineering standards.';
+
+  // Update OG / Twitter tags for social sharing
+  setMetaTag('og:title', blog.title + ' - Basepoint Engineering');
+  setMetaTag('twitter:title', blog.title + ' - Basepoint Engineering');
+  setMetaTag('og:description', metaDesc.content);
+  setMetaTag('twitter:description', metaDesc.content);
+  setMetaTag('og:url', window.location.href);
+  setMetaTag('og:type', 'article');
+  if (blog.imageUrl) setMetaTag('og:image', blog.imageUrl);
+  if (blog.imageUrl) setMetaTag('twitter:image', blog.imageUrl);
 
   // Update blog title
   const titleEl = document.querySelector('[data-blog-detail="title"]');

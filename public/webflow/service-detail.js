@@ -1,5 +1,18 @@
 const API_URL = 'https://cms.basepointengineering.com';
 
+// Helper to set or create a meta tag
+function setMetaTag(property, content) {
+  if (!content) return;
+  let tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
+  if (!tag) {
+    tag = document.createElement('meta');
+    if (property.startsWith('og:')) tag.setAttribute('property', property);
+    else tag.setAttribute('name', property);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute('content', content);
+}
+
 // Show/hide loading
 function showLoading() {
   const loader = document.createElement('div');
@@ -165,6 +178,14 @@ function displayServiceDetail(service) {
   }
   metaDesc.content = service.excerpt
     || service.title + ' — Basepoint Engineering services for below-the-hook lifting devices, CWB welding, structural inspection, and custom engineering.';
+
+  // Update OG / Twitter tags for social sharing
+  setMetaTag('og:title', service.title + ' - Basepoint Engineering');
+  setMetaTag('twitter:title', service.title + ' - Basepoint Engineering');
+  setMetaTag('og:description', metaDesc.content);
+  setMetaTag('twitter:description', metaDesc.content);
+  setMetaTag('og:url', window.location.href);
+  setMetaTag('og:type', 'website');
 
   // Update service title
   const titleEl = document.querySelector('[data-service="title"]');
