@@ -232,9 +232,23 @@ function displayProductDetail(product) {
 
   allVariants = product.variants || [];
   // Separate enabled variants for configurator (disabled ones still in allVariants for table)
-  const enabledVariants = allVariants.filter(function(v) { return v.enabled !== false; });
+  const enabledVariants = allVariants.filter(function (v) {
+    return v.enabled !== false;
+  });
 
   document.title = product.title + " - Basepoint Engineering";
+
+  // Set meta description
+  let metaDesc = document.querySelector('meta[name="description"]');
+  if (!metaDesc) {
+    metaDesc = document.createElement('meta');
+    metaDesc.name = 'description';
+    document.head.appendChild(metaDesc);
+  }
+  metaDesc.content = (product.description
+    ? product.description.replace(/<[^>]*>/g, '').substring(0, 160).trim()
+    : '')
+    || product.title + ' — ' + (product.category || '') + ' | Basepoint Engineering below-the-hook lifting equipment.';
 
   const titleEl = document.querySelector('[data-product-detail="title"]');
   if (titleEl) {
@@ -874,7 +888,8 @@ function findSelectedVariant() {
     if (priceLabel) priceLabel.style.display = "none";
     priceDisplay.style.display = "block";
     priceAmount.textContent = "⚠ Not Available — select a different variation";
-    priceAmount.style.cssText = "color:#ef4444;font-size:0.9rem;font-weight:600;background:#fef2f2;padding:0.5rem 0.75rem;border-radius:8px;border:1px solid #fecaca;display:inline-block;";
+    priceAmount.style.cssText =
+      "color:#ef4444;font-size:0.9rem;font-weight:600;background:#fef2f2;padding:0.5rem 0.75rem;border-radius:8px;border:1px solid #fecaca;display:inline-block;";
     purchaseBtn.disabled = true;
   } else {
     variantInfo.style.display = "none";
@@ -1052,8 +1067,13 @@ function renderProductContentBlocks(blocks) {
           const paragraphStyle =
             baseStyle +
             " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem;";
-          var paragraphContent = block.content.replace(/<a /gi, '<a target="_blank" rel="noopener noreferrer" ');
-          return '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>";
+          var paragraphContent = block.content.replace(
+            /<a /gi,
+            '<a target="_blank" rel="noopener noreferrer" ',
+          );
+          return (
+            '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>"
+          );
 
         case "list":
           const listTag = block.listType === "numbered" ? "ol" : "ul";
@@ -1246,7 +1266,9 @@ function displayVariants(variants) {
   });
 
   // Add Price column header if any variant has a price
-  var hasPrice = variants.some(function(v) { return v.price !== null && v.price !== undefined; });
+  var hasPrice = variants.some(function (v) {
+    return v.price !== null && v.price !== undefined;
+  });
   if (hasPrice) tableHtml += "<th>Price</th>";
 
   tableHtml += "</tr></thead><tbody>";
@@ -1255,8 +1277,13 @@ function displayVariants(variants) {
     var isDisabled = variant.enabled === false;
     tableHtml += "<tr" + (isDisabled ? ' style="opacity:0.6;"' : "") + ">";
     tableHtml +=
-      "<td><strong>" + (variant.modelNumber || "N/A") + "</strong>" +
-      (isDisabled ? ' <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">⊘ Disabled</span>' : "") + "</td>";
+      "<td><strong>" +
+      (variant.modelNumber || "N/A") +
+      "</strong>" +
+      (isDisabled
+        ? ' <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">⊘ Disabled</span>'
+        : "") +
+      "</td>";
     if (hasCapacity) tableHtml += "<td>" + (variant.capacity || "-") + "</td>";
     if (hasLength) tableHtml += "<td>" + (variant.length || "-") + "</td>";
     if (hasEndConnection)
@@ -1271,9 +1298,11 @@ function displayVariants(variants) {
     // Price cell
     if (hasPrice) {
       if (isDisabled) {
-        tableHtml += '<td><span style="color:#9ca3af;font-size:0.85rem;">Not Available</span></td>';
+        tableHtml +=
+          '<td><span style="color:#9ca3af;font-size:0.85rem;">Not Available</span></td>';
       } else if (variant.price !== null && variant.price !== undefined) {
-        tableHtml += "<td><strong>CA$" + variant.price.toFixed(2) + "</strong></td>";
+        tableHtml +=
+          "<td><strong>CA$" + variant.price.toFixed(2) + "</strong></td>";
       } else {
         tableHtml += "<td>—</td>";
       }
@@ -1442,77 +1471,87 @@ function showPreviewClaimModal(variant) {
   if (existing) existing.remove();
 
   var productSlug = getSlugFromURL();
-  var productTitle = document.querySelector('[data-product-detail="title"]')?.textContent || "";
+  var productTitle =
+    document.querySelector('[data-product-detail="title"]')?.textContent || "";
   var checkoutLink = currentProductStripePaymentLink || window.location.href;
 
   var overlay = document.createElement("div");
   overlay.id = "preview-claim-modal";
-  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
 
   overlay.innerHTML = [
     '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
 
-      // Header
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">',
-        '<div>',
-          '<p style="font-family:Montserrat,sans-serif;font-size:0.75rem;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.35rem;">Good News</p>',
-          '<h2 style="font-family:Montserrat,sans-serif;font-size:1.3rem;font-weight:700;color:#111827;margin:0;line-height:1.3;">Your engineering drawing is ready — want us to send it?</h2>',
-        '</div>',
-        '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;margin-left:1rem;flex-shrink:0;">×</button>',
-      '</div>',
+    // Header
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">',
+    "<div>",
+    '<p style="font-family:Montserrat,sans-serif;font-size:0.75rem;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.35rem;">Good News</p>',
+    '<h2 style="font-family:Montserrat,sans-serif;font-size:1.3rem;font-weight:700;color:#111827;margin:0;line-height:1.3;">Your engineering drawing is ready — want us to send it?</h2>',
+    "</div>",
+    '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;margin-left:1rem;flex-shrink:0;">×</button>',
+    "</div>",
 
-      // Variant badge
-      '<div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0.35rem 0.75rem;margin-bottom:1rem;">',
-        '<span style="font-size:0.75rem;color:#1d4ed8;font-family:Open Sans,sans-serif;">Selected:</span>',
-        '<span style="font-size:0.8rem;font-weight:700;color:#1e3a8a;font-family:Montserrat,sans-serif;">' + (variant.modelNumber || "") + '</span>',
-      '</div>',
+    // Variant badge
+    '<div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0.35rem 0.75rem;margin-bottom:1rem;">',
+    '<span style="font-size:0.75rem;color:#1d4ed8;font-family:Open Sans,sans-serif;">Selected:</span>',
+    '<span style="font-size:0.8rem;font-weight:700;color:#1e3a8a;font-family:Montserrat,sans-serif;">' +
+      (variant.modelNumber || "") +
+      "</span>",
+    "</div>",
 
-      // Body copy
-      '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.6;margin:0 0 1.25rem;">',
-        'We\'ve prepared a detailed engineering drawing for this variant. Drop your details below and we\'ll email it to you instantly — along with a direct checkout link so you\'re ready to order when you are.',
-      '</p>',
+    // Body copy
+    '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.6;margin:0 0 1.25rem;">',
+    "We've prepared a detailed engineering drawing for this variant. Drop your details below and we'll email it to you instantly — along with a direct checkout link so you're ready to order when you are.",
+    "</p>",
 
-      // Trust signals
-      '<div style="display:flex;gap:1.25rem;margin-bottom:1.25rem;">',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Instant delivery</span>',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> No spam, ever</span>',
-        '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Free</span>',
-      '</div>',
+    // Trust signals
+    '<div style="display:flex;gap:1.25rem;margin-bottom:1.25rem;">',
+    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Instant delivery</span>',
+    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> No spam, ever</span>',
+    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Free</span>',
+    "</div>",
 
-      // Error
-      '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
+    // Error
+    '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
 
-      // Name field
-      '<div style="margin-bottom:0.875rem;">',
-        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Full Name *</label>',
-        '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
-      '</div>',
+    // Name field
+    '<div style="margin-bottom:0.875rem;">',
+    '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Full Name *</label>',
+    '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
+    "</div>",
 
-      // Email field
-      '<div style="margin-bottom:1.5rem;">',
-        '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Work Email *</label>',
-        '<input id="modal-email" type="email" placeholder="jane@company.com" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
-      '</div>',
+    // Email field
+    '<div style="margin-bottom:1.5rem;">',
+    '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Work Email *</label>',
+    '<input id="modal-email" type="email" placeholder="jane@company.com" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
+    "</div>",
 
-      // Success
-      '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
+    // Success
+    '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
 
-      // Buttons
-      '<div style="display:flex;gap:0.75rem;">',
-        '<button id="modal-submit-btn" style="flex:1;padding:0.8rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Send Me the Drawing →</button>',
-        '<button id="modal-cancel-btn" style="padding:0.8rem 1.1rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.85rem;cursor:pointer;">Maybe Later</button>',
-      '</div>',
+    // Buttons
+    '<div style="display:flex;gap:0.75rem;">',
+    '<button id="modal-submit-btn" style="flex:1;padding:0.8rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Send Me the Drawing →</button>',
+    '<button id="modal-cancel-btn" style="padding:0.8rem 1.1rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.85rem;cursor:pointer;">Maybe Later</button>',
+    "</div>",
 
-    '</div>'
+    "</div>",
   ].join("");
 
   document.body.appendChild(overlay);
 
-  document.getElementById("modal-close-btn").onclick = function() { overlay.remove(); };
-  document.getElementById("modal-cancel-btn").onclick = function() { overlay.remove(); };
-  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  document.getElementById("modal-close-btn").onclick = function () {
+    overlay.remove();
+  };
+  document.getElementById("modal-cancel-btn").onclick = function () {
+    overlay.remove();
+  };
+  overlay.onclick = function (e) {
+    if (e.target === overlay) overlay.remove();
+  };
 
-  document.getElementById("modal-submit-btn").onclick = async function() {
+  document.getElementById("modal-submit-btn").onclick = async function () {
     var name = document.getElementById("modal-name").value.trim();
     var email = document.getElementById("modal-email").value.trim();
     var errorEl = document.getElementById("modal-error");
@@ -1552,7 +1591,8 @@ function showPreviewClaimModal(variant) {
         overlay.remove();
         showPreviewSuccessModal(name);
       } else {
-        errorEl.textContent = data.error || "Something went wrong. Please try again.";
+        errorEl.textContent =
+          data.error || "Something went wrong. Please try again.";
         errorEl.style.display = "block";
         submitBtn.disabled = false;
         submitBtn.textContent = "Send Me the Drawing →";
@@ -1569,38 +1609,45 @@ function showPreviewClaimModal(variant) {
 function showPreviewSuccessModal(name) {
   var popup = document.createElement("div");
   popup.id = "preview-success-modal";
-  popup.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
+  popup.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
 
   popup.innerHTML = [
     '<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25);text-align:center;">',
 
-      // Icon
-      '<div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">🎉</div>',
+    // Icon
+    '<div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">🎉</div>',
 
-      // Label
-      '<p style="font-family:Montserrat,sans-serif;font-size:0.7rem;font-weight:700;color:#16a34a;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.5rem;">You\'re all set</p>',
+    // Label
+    '<p style="font-family:Montserrat,sans-serif;font-size:0.7rem;font-weight:700;color:#16a34a;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.5rem;">You\'re all set</p>',
 
-      // Headline
-      '<h2 style="font-family:Montserrat,sans-serif;font-size:1.4rem;font-weight:700;color:#111827;margin:0 0 0.75rem;line-height:1.3;">Congratulations, ' + name + '!</h2>',
+    // Headline
+    '<h2 style="font-family:Montserrat,sans-serif;font-size:1.4rem;font-weight:700;color:#111827;margin:0 0 0.75rem;line-height:1.3;">Congratulations, ' +
+      name +
+      "!</h2>",
 
-      // Body
-      '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.65;margin:0 0 1.75rem;">',
-        'Your engineering drawing is on its way. Check your inbox — we\'ve also included a direct checkout link so you can move forward whenever you\'re ready.',
-      '</p>',
+    // Body
+    '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.65;margin:0 0 1.75rem;">',
+    "Your engineering drawing is on its way. Check your inbox — we've also included a direct checkout link so you can move forward whenever you're ready.",
+    "</p>",
 
-      // Close button
-      '<button id="success-close-btn" style="width:100%;padding:0.85rem;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Got it, thanks!</button>',
+    // Close button
+    '<button id="success-close-btn" style="width:100%;padding:0.85rem;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Got it, thanks!</button>',
 
-      // Microcopy
-      '<p style="font-family:Open Sans,sans-serif;font-size:0.72rem;color:#9ca3af;margin:0.875rem 0 0;">Didn\'t receive it? Check your spam folder.</p>',
+    // Microcopy
+    '<p style="font-family:Open Sans,sans-serif;font-size:0.72rem;color:#9ca3af;margin:0.875rem 0 0;">Didn\'t receive it? Check your spam folder.</p>',
 
-    '</div>'
+    "</div>",
   ].join("");
 
   document.body.appendChild(popup);
 
-  document.getElementById("success-close-btn").onclick = function() { popup.remove(); };
-  popup.onclick = function(e) { if (e.target === popup) popup.remove(); };
+  document.getElementById("success-close-btn").onclick = function () {
+    popup.remove();
+  };
+  popup.onclick = function (e) {
+    if (e.target === popup) popup.remove();
+  };
 }
 
 // Initialize
@@ -1617,3 +1664,22 @@ if (document.readyState === "loading") {
 console.log(
   "✓ Product detail script loaded with custom fields and Stripe Payment Link support",
 );
+
+// =========================================================
+// CANONICAL INJECTION LOGIC
+// =========================================================
+const urlParams = new URLSearchParams(window.location.search);
+const productSlug = urlParams.get("slug");
+
+if (productSlug) {
+  // Change 'product-detail' to 'blog-detail' on your blog template page!
+  const canonicalUrl = `https://www.basepointengineering.com/product-detail?slug=${productSlug}`;
+
+  let link = document.querySelector("link[rel='canonical']");
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", canonicalUrl);
+}

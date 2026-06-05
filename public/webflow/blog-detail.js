@@ -88,6 +88,17 @@ function displayBlogDetail(blog) {
   // Update page title
   document.title = blog.title + " - Basepoint Engineering";
 
+  // Set meta description
+  let metaDesc = document.querySelector('meta[name="description"]');
+  if (!metaDesc) {
+    metaDesc = document.createElement('meta');
+    metaDesc.name = 'description';
+    document.head.appendChild(metaDesc);
+  }
+  metaDesc.content = blog.excerpt
+    || (blog.content ? blog.content.replace(/<[^>]*>/g, '').substring(0, 155).trim() + '...' : '')
+    || 'Read ' + blog.title + ' on the Basepoint Engineering blog — industry insights on lifting equipment, below-the-hook devices, and engineering standards.';
+
   // Update blog title
   const titleEl = document.querySelector('[data-blog-detail="title"]');
   if (titleEl) {
@@ -194,8 +205,13 @@ function renderContentBlocks(blocks) {
           const paragraphStyle =
             baseStyle +
             " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem;";
-          var paragraphContent = block.content.replace(/<a /gi, '<a target="_blank" rel="noopener noreferrer" ');
-          return '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>";
+          var paragraphContent = block.content.replace(
+            /<a /gi,
+            '<a target="_blank" rel="noopener noreferrer" ',
+          );
+          return (
+            '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>"
+          );
 
         case "list":
           const listTag = block.listType === "numbered" ? "ol" : "ul";
@@ -435,4 +451,23 @@ if (document.readyState === "loading") {
   });
 } else {
   setTimeout(loadBlogDetail, 500);
+}
+
+// =========================================================
+// BLOG CANONICAL INJECTION LOGIC
+// =========================================================
+const urlParams = new URLSearchParams(window.location.search);
+const blogSlug = urlParams.get("slug");
+
+if (blogSlug) {
+  // Points exactly to your dynamic blog post URL
+  const canonicalUrl = `https://www.basepointengineering.com/blog-detail?slug=${blogSlug}`;
+
+  let link = document.querySelector("link[rel='canonical']");
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", canonicalUrl);
 }
