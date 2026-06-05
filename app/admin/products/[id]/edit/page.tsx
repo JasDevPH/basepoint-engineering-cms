@@ -78,6 +78,7 @@ export default function EditProductPage() {
   const [slug, setSlug] = useState("");
   const [isSlugManual, setIsSlugManual] = useState(false);
   const [description, setDescription] = useState("");
+  const [excerpt, setExcerpt] = useState("");
   const [contentBlocks, setContentBlocks] = useState<ProductContentBlock[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState("");
@@ -488,6 +489,7 @@ export default function EditProductPage() {
         setTitle(product.title);
         setSlug(product.slug);
         setDescription(product.description || "");
+        setExcerpt(product.excerpt || "");
         setImageUrl(product.imageUrl || "");
         setCategory(product.category || "");
         setCategoryOrder(product.categoryOrder?.toString() || "");
@@ -756,6 +758,7 @@ export default function EditProductPage() {
           title,
           slug,
           description: description || plainDescription,
+          excerpt: excerpt || null,
           contentBlocks,
           imageUrl,
           category,
@@ -1285,6 +1288,23 @@ export default function EditProductPage() {
                   rows={3}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Meta Description (for SEO &amp; social sharing)
+                </label>
+                <textarea
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                  rows={2}
+                  maxLength={160}
+                  placeholder="Brief summary for search engines (max 160 chars)"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {excerpt.length}/160 characters. Leave blank to auto-generate from content.
+                </p>
               </div>
             </div>
           </div>

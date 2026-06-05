@@ -258,9 +258,10 @@ function displayProductDetail(product) {
     metaDesc.name = 'description';
     document.head.appendChild(metaDesc);
   }
-  metaDesc.content = (product.description
-    ? product.description.replace(/<[^>]*>/g, '').substring(0, 160).trim()
-    : '')
+  metaDesc.content = product.excerpt
+    || (product.description
+      ? product.description.replace(/<[^>]*>/g, '').substring(0, 160).trim()
+      : '')
     || product.title + ' — ' + (product.category || '') + ' | Basepoint Engineering below-the-hook lifting equipment.';
 
   // Update OG / Twitter tags for social sharing

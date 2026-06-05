@@ -14,6 +14,7 @@ model Product {
   slug            String           @unique
   title           String
   description     String?          @db.Text
+  excerpt         String?          @db.Text
   contentBlocks   Json?
   showVariantsTable Boolean        @default(true)
   imageUrl        String?
