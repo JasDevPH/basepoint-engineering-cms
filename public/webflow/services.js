@@ -105,8 +105,19 @@ function getLucideIcon(iconName) {
 }
 
 function showSkeleton(grid) {
+  // Ensure grid layout
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(340px, 1fr))';
+  grid.style.gap = '1.5rem';
+  grid.style.padding = '2rem 0';
+
   var count = window.innerWidth <= 480 ? 2 : 4;
-  var html = '';
+  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="grid-column:1/-1;text-align:center;justify-self:center;width:100%;margin-bottom:0.5rem;">';
+  html += '<a href="https://basepointengineering.com">Home</a>';
+  html += '<span class="bp-separator">›</span>';
+  html += '<span class="bp-current">Services</span>';
+  html += '</nav>';
+
   for (var i = 0; i < count; i++) {
     html += '<div class="svc-card svc-skeleton">';
     html += '<div class="svc-card-icon skel-shimmer"></div>';
@@ -119,7 +130,6 @@ function showSkeleton(grid) {
     html += '</div>';
   }
   grid.innerHTML = html;
-  injectBreadcrumb(); // re-inject after innerHTML wipe
 }
 
 async function loadServices() {
@@ -145,7 +155,19 @@ function displayServices(services) {
   var grid = document.querySelector('[data-services="grid"]');
   if (!grid) return;
 
-  var html = '';
+  // Ensure grid layout
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(340px, 1fr))';
+  grid.style.gap = '1.5rem';
+  grid.style.padding = '2rem 0';
+
+  // Breadcrumb first
+  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="grid-column:1/-1;text-align:center;justify-self:center;width:100%;margin-bottom:0.5rem;">';
+  html += '<a href="https://basepointengineering.com">Home</a>';
+  html += '<span class="bp-separator">›</span>';
+  html += '<span class="bp-current">Services</span>';
+  html += '</nav>';
+
   services.forEach(function(svc) {
     var iconName = getLucideIcon(svc.icon);
     html += '<a href="/service-detail?slug=' + svc.slug + '" class="svc-card" title="' + svc.title + '">';
@@ -161,7 +183,6 @@ function displayServices(services) {
   });
 
   grid.innerHTML = html;
-  injectBreadcrumb(); // re-inject after innerHTML wipe
 
   // Initialize Lucide icons
   if (window.lucide) {
