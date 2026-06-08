@@ -1,0 +1,24 @@
+# ──────────────────────────────────────────
+# Basepoint Engineering — robots.txt
+# Lifting Equipment · Below-the-Hook Devices · Engineering
+# Updated: 2026-06-05
+# ──────────────────────────────────────────
+
+User-agent: *
+Allow: /
+
+# ── Sitemaps ──────────────────────────────
+Sitemap: https://www.basepointengineering.com/sitemap.xml
+
+# ── Crawl budget: disallow low-value paths ─
+Disallow: /cdn-cgi/
+Disallow: /assets/
+Disallow: /*?utm_source=
+Disallow: /*?utm_medium=
+Disallow: /*?utm_campaign=
+Disallow: /*?utm_content=
+Disallow: /*?utm_term=
+Disallow: /*?fbclid=
+Disallow: /*?gclid=
+Disallow: /*?msclkid=
+Disallow: /*?ref=
