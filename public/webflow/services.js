@@ -51,7 +51,7 @@ function injectBreadcrumb() {
   var existing = document.querySelector('.bp-breadcrumb');
   if (existing) existing.remove();
 
-  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="grid-column:1/-1;text-align:center;justify-self:center;width:100%;">';
+  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="text-align:center;">';
   html += '<a href="https://www.basepointengineering.com">Home</a>';
   html += '<span class="bp-separator">›</span>';
   html += '<span class="bp-current">Services</span>';
@@ -59,10 +59,6 @@ function injectBreadcrumb() {
 
   var target = document.querySelector('[data-services="grid"]');
   if (target) {
-    target.style.display = 'grid';
-    target.style.gridTemplateColumns = 'repeat(auto-fill, minmax(340px, 1fr))';
-    target.style.gap = '1.5rem';
-    target.style.padding = '2rem 0';
     target.insertAdjacentHTML('afterbegin', html);
   } else {
     var fallback = document.querySelector('main') || document.querySelector('.container');
