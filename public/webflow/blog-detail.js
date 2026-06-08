@@ -1,47 +1,135 @@
 const API_URL = "https://cms.basepointengineering.com";
 
-// Helper to set or create a meta tag
+// ── Helper ────────────────────────────────
 function setMetaTag(property, content) {
   if (!content) return;
-  var tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
+  var tag =
+    document.querySelector('meta[property="' + property + '"]') ||
+    document.querySelector('meta[name="' + property + '"]');
   if (!tag) {
-    tag = document.createElement('meta');
-    if (property.indexOf('og:') === 0) tag.setAttribute('property', property);
-    else tag.setAttribute('name', property);
+    tag = document.createElement("meta");
+    if (property.indexOf("og:") === 0) tag.setAttribute("property", property);
+    else tag.setAttribute("name", property);
     document.head.appendChild(tag);
   }
-  tag.setAttribute('content', content);
+  tag.setAttribute("content", content);
 }
 
-// Create and show loading screen
-function showLoading() {
-  const existingLoader = document.getElementById("blog-loading-screen");
-  if (existingLoader) return;
+// ── Skeleton ──────────────────────────────
+const SKEL = "linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%)";
+const SKEL_STYLE =
+  "background:" +
+  SKEL +
+  ";background-size:200% 100%;animation:skel-shimmer 1.5s infinite;border-radius:6px;display:block;";
 
-  const loader = document.createElement("div");
-  loader.id = "blog-loading-screen";
-  loader.className = "blog-loading-screen";
-  loader.innerHTML = `
-    <div class="blog-spinner"></div>
-    <div class="blog-loading-text">Loading blog post...</div>
-  `;
-  document.body.appendChild(loader);
-  console.log("✓ Loading screen shown");
+function skelBar(w, h, mb) {
+  return (
+    '<div style="height:' +
+    h +
+    ";width:" +
+    w +
+    ";" +
+    SKEL_STYLE +
+    "margin-bottom:" +
+    (mb || "0.75rem") +
+    ';"></div>'
+  );
 }
 
-// Hide loading screen
-function hideLoading() {
-  const loader = document.getElementById("blog-loading-screen");
-  if (loader) {
-    loader.classList.add("hidden");
-    setTimeout(function () {
-      loader.remove();
-      console.log("✓ Loading screen hidden");
-    }, 300);
+function showSkeleton() {
+  // Featured image skeleton
+  const imgEl = document.querySelector('[data-blog-detail="image"]');
+  if (imgEl) {
+    imgEl.style.cssText =
+      "width:100%;height:420px;" + SKEL_STYLE + "border-radius:0;";
+    imgEl.src =
+      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  }
+
+  // Title skeleton
+  const titleEl = document.querySelector('[data-blog-detail="title"]');
+  if (titleEl) {
+    titleEl.innerHTML =
+      skelBar("75%", "2.25rem", "0.5rem") + skelBar("50%", "2.25rem", "0");
+  }
+
+  // Author skeleton
+  const authorEl = document.querySelector('[data-blog-detail="author"]');
+  if (authorEl) authorEl.innerHTML = skelBar("20%", "1rem", "0");
+
+  // Date skeleton
+  const dateEl = document.querySelector('[data-blog-detail="date"]');
+  if (dateEl) dateEl.innerHTML = skelBar("25%", "1rem", "0");
+
+  // Breadcrumb skeleton — inject before content
+  const contentTarget = document.querySelector('[data-blog-detail="content"]');
+  if (contentTarget && contentTarget.parentElement) {
+    let existingSkel = document.getElementById("breadcrumb-skel");
+    if (!existingSkel) {
+      existingSkel = document.createElement("div");
+      existingSkel.id = "breadcrumb-skel";
+      existingSkel.style.cssText =
+        "display:flex;align-items:center;gap:8px;padding:12px 0;margin-bottom:1rem;";
+      existingSkel.innerHTML =
+        '<div style="height:0.875rem;width:35px;' +
+        SKEL_STYLE +
+        '"></div>' +
+        '<div style="height:0.875rem;width:8px;' +
+        SKEL_STYLE +
+        '"></div>' +
+        '<div style="height:0.875rem;width:45px;' +
+        SKEL_STYLE +
+        '"></div>' +
+        '<div style="height:0.875rem;width:8px;' +
+        SKEL_STYLE +
+        '"></div>' +
+        '<div style="height:0.875rem;width:120px;' +
+        SKEL_STYLE +
+        '"></div>';
+      contentTarget.parentElement.insertBefore(existingSkel, contentTarget);
+    }
+  }
+
+  // Content skeleton
+  if (contentTarget) {
+    let html = "";
+    // Heading
+    html += skelBar("55%", "1.75rem", "1.5rem");
+    // Paragraphs
+    for (let i = 0; i < 3; i++) {
+      html += skelBar("100%", "1rem");
+      html += skelBar("100%", "1rem");
+      html += skelBar(i % 2 === 0 ? "80%" : "65%", "1rem", "1.5rem");
+    }
+    // Subheading
+    html += skelBar("40%", "1.5rem", "1rem");
+    // More paragraph lines
+    for (let i = 0; i < 4; i++) {
+      html += skelBar(i === 3 ? "60%" : "100%", "1rem");
+    }
+    // Image placeholder
+    html +=
+      '<div style="width:100%;height:300px;' +
+      SKEL_STYLE +
+      'border-radius:8px;margin-top:1.5rem;margin-bottom:1.5rem;"></div>';
+    // More content
+    for (let i = 0; i < 3; i++) {
+      html += skelBar(i === 2 ? "70%" : "100%", "1rem");
+    }
+    contentTarget.innerHTML = html;
   }
 }
 
-// Load Google Fonts
+function clearSkeletons() {
+  const breadcrumbSkel = document.getElementById("breadcrumb-skel");
+  if (breadcrumbSkel) breadcrumbSkel.remove();
+
+  // Reset image style
+  const imgEl = document.querySelector('[data-blog-detail="image"]');
+  if (imgEl) imgEl.style.cssText = "";
+}
+
+// ── Google Fonts ──────────────────────────
 function loadGoogleFonts() {
   if (!document.querySelector("#google-fonts-link")) {
     const link = document.createElement("link");
@@ -50,176 +138,154 @@ function loadGoogleFonts() {
     link.href =
       "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap";
     document.head.appendChild(link);
-    console.log("✓ Google Fonts loaded");
   }
 }
 
-// Get slug from URL
 function getSlugFromURL() {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get("slug");
+  return new URLSearchParams(window.location.search).get("slug");
 }
 
-// Fetch and display single blog
+// ── Load blog detail ──────────────────────
 async function loadBlogDetail() {
   const slug = getSlugFromURL();
-  console.log("Loading blog with slug:", slug);
-
   if (!slug) {
-    hideLoading();
     showError("No blog slug provided");
     return;
   }
 
-  // Show loading screen
-  showLoading();
+  // Show skeleton immediately — no spinner
+  showSkeleton();
 
   try {
-    const response = await fetch(`${API_URL}/api/blogs/${slug}`);
+    const response = await fetch(API_URL + "/api/blogs/" + slug);
     const data = await response.json();
-
-    console.log("Blog detail data:", data);
-
     if (data.success) {
       displayBlogDetail(data.data);
-      // Hide loading after content is displayed
-      setTimeout(hideLoading, 300);
     } else {
-      hideLoading();
       showError("Blog post not found");
     }
   } catch (error) {
     console.error("Error loading blog:", error);
-    hideLoading();
     showError("Failed to load blog post. Please try again.");
   }
 }
 
 function displayBlogDetail(blog) {
-  console.log("Displaying blog:", blog.title);
+  // Clear skeletons before populating real content
+  clearSkeletons();
 
-  // Update page title
   document.title = blog.title + " - Basepoint Engineering";
 
-  // Set meta description
   let metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
-    metaDesc = document.createElement('meta');
-    metaDesc.name = 'description';
+    metaDesc = document.createElement("meta");
+    metaDesc.name = "description";
     document.head.appendChild(metaDesc);
   }
-  metaDesc.content = blog.excerpt
-    || (blog.content ? blog.content.replace(/<[^>]*>/g, '').substring(0, 155).trim() + '...' : '')
-    || 'Read ' + blog.title + ' on the Basepoint Engineering blog — industry insights on lifting equipment, below-the-hook devices, and engineering standards.';
+  metaDesc.content =
+    blog.excerpt ||
+    (blog.content
+      ? blog.content
+          .replace(/<[^>]*>/g, "")
+          .substring(0, 155)
+          .trim() + "..."
+      : "") ||
+    "Read " + blog.title + " on the Basepoint Engineering blog.";
 
-  // Update OG / Twitter tags for social sharing
-  setMetaTag('og:title', blog.title + ' - Basepoint Engineering');
-  setMetaTag('twitter:title', blog.title + ' - Basepoint Engineering');
-  setMetaTag('og:description', metaDesc.content);
-  setMetaTag('twitter:description', metaDesc.content);
-  setMetaTag('og:url', window.location.href);
-  setMetaTag('og:type', 'article');
-  if (blog.imageUrl) setMetaTag('og:image', blog.imageUrl);
-  if (blog.imageUrl) setMetaTag('twitter:image', blog.imageUrl);
+  setMetaTag("og:title", blog.title + " - Basepoint Engineering");
+  setMetaTag("twitter:title", blog.title + " - Basepoint Engineering");
+  setMetaTag("og:description", metaDesc.content);
+  setMetaTag("twitter:description", metaDesc.content);
+  setMetaTag("og:url", window.location.href);
+  setMetaTag("og:type", "article");
+  setMetaTag("twitter:card", "summary_large_image");
+  if (blog.imageUrl) {
+    setMetaTag("og:image", blog.imageUrl);
+    setMetaTag("twitter:image", blog.imageUrl);
+  }
 
-  // Breadcrumb injection
   injectBlogBreadcrumb(blog.title);
 
-  // Update blog title
+  // Title
   const titleEl = document.querySelector('[data-blog-detail="title"]');
   if (titleEl) {
     titleEl.textContent = blog.title;
     titleEl.style.fontFamily = "'Montserrat', sans-serif";
     titleEl.style.fontWeight = "700";
-    console.log("✓ Title updated");
   }
 
-  // Update featured image
+  // Image
   const imgEl = document.querySelector('[data-blog-detail="image"]');
   if (imgEl && blog.imageUrl) {
+    imgEl.style.cssText = "";
     imgEl.src = blog.imageUrl + "?t=" + new Date().getTime();
     imgEl.alt = blog.title;
     imgEl.style.width = "100%";
     imgEl.style.height = window.innerWidth <= 768 ? "260px" : "420px";
     imgEl.style.objectFit = "cover";
     imgEl.style.borderRadius = "0";
-    console.log("✓ Image updated");
   }
 
-  // Update author
+  // Author
   const authorEl = document.querySelector('[data-blog-detail="author"]');
   if (authorEl && blog.author) {
     authorEl.textContent = "By " + blog.author;
     authorEl.style.fontFamily = "'Open Sans', sans-serif";
-    console.log("✓ Author updated");
   } else if (authorEl) {
     authorEl.style.display = "none";
   }
 
-  // Update date
+  // Date
   const dateEl = document.querySelector('[data-blog-detail="date"]');
   if (dateEl && blog.publishedAt) {
     const date = new Date(blog.publishedAt);
-    const formattedDate = date.toLocaleDateString("en-US", {
+    dateEl.textContent = date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-    dateEl.textContent = formattedDate;
     dateEl.style.fontFamily = "'Open Sans', sans-serif";
-    console.log("✓ Date updated");
   }
 
-  // Update content
+  // Content
   const contentEl = document.querySelector('[data-blog-detail="content"]');
   if (contentEl) {
     if (blog.contentBlocks && Array.isArray(blog.contentBlocks)) {
-      // Render structured content blocks
       contentEl.innerHTML = renderContentBlocks(blog.contentBlocks);
-      console.log("✓ Structured content rendered");
     } else if (blog.content) {
-      // Fallback to plain content
       contentEl.innerHTML =
-        "<p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">" +
+        "<p style=\"font-family:'Open Sans',sans-serif;line-height:1.8;\">" +
         blog.content
           .replace(
             /\n\n/g,
-            "</p><p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">",
+            "</p><p style=\"font-family:'Open Sans',sans-serif;line-height:1.8;\">",
           )
           .replace(/\n/g, "<br>") +
         "</p>";
-      console.log("✓ Plain content rendered");
     }
   }
-
-  console.log("✓ Blog detail loaded successfully");
 }
 
+// ── Render content blocks ─────────────────
 function renderContentBlocks(blocks) {
   return blocks
     .map(function (block) {
       const marginTop = block.marginTop || 0;
       const marginBottom = block.marginBottom || 20;
       const baseStyle =
-        "margin-top: " +
-        marginTop +
-        "px; margin-bottom: " +
-        marginBottom +
-        "px;";
+        "margin-top:" + marginTop + "px;margin-bottom:" + marginBottom + "px;";
 
       switch (block.type) {
         case "heading":
           const level = block.level || 2;
-          const headingStyle =
-            baseStyle +
-            " font-family: 'Montserrat', sans-serif; font-weight: " +
-            (level === 1 ? "700" : level === 2 ? "600" : "500") +
-            "; line-height: 1.3;";
           return (
             "<h" +
             level +
             ' style="' +
-            headingStyle +
+            baseStyle +
+            "font-family:'Montserrat',sans-serif;font-weight:" +
+            (level === 1 ? "700" : level === 2 ? "600" : "500") +
+            ";line-height:1.3;" +
             '">' +
             block.content +
             "</h" +
@@ -228,141 +294,94 @@ function renderContentBlocks(blocks) {
           );
 
         case "paragraph":
-          const paragraphStyle =
-            baseStyle +
-            " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem;";
-          var paragraphContent = block.content.replace(
-            /<a /gi,
-            '<a target="_blank" rel="noopener noreferrer" ',
-          );
           return (
-            '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>"
+            '<p style="' +
+            baseStyle +
+            "font-family:'Open Sans',sans-serif;line-height:1.8;font-size:1rem;" +
+            '">' +
+            block.content.replace(
+              /<a /gi,
+              '<a target="_blank" rel="noopener noreferrer" ',
+            ) +
+            "</p>"
           );
 
         case "list":
           const listTag = block.listType === "numbered" ? "ol" : "ul";
           const listStyle =
             baseStyle +
-            " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem; " +
+            "font-family:'Open Sans',sans-serif;line-height:1.8;font-size:1rem;" +
             (block.listType === "numbered"
-              ? "list-style-type: decimal; padding-left: 2rem;"
-              : "list-style-type: disc; padding-left: 2rem;");
-          const items = block.listItems || [];
-          const itemsHtml = items
-            .map(function (item) {
-              return '<li style="margin-bottom: 0.5rem;">' + item + "</li>";
-            })
-            .join("");
+              ? "list-style-type:decimal;padding-left:2rem;"
+              : "list-style-type:disc;padding-left:2rem;");
           return (
             "<" +
             listTag +
             ' style="' +
             listStyle +
             '">' +
-            itemsHtml +
+            (block.listItems || [])
+              .map((i) => '<li style="margin-bottom:0.5rem;">' + i + "</li>")
+              .join("") +
             "</" +
             listTag +
             ">"
           );
 
         case "image":
-          const imageStyle =
-            baseStyle +
-            " max-width: 100%; height: auto; display: block; border-radius: 8px;";
           return (
             '<img src="' +
             block.content +
             '" alt="' +
             (block.alt || "") +
             '" style="' +
-            imageStyle +
-            '" />'
+            baseStyle +
+            'max-width:100%;height:auto;display:block;border-radius:8px;" />'
           );
 
         case "embed":
-          // FIXED: Properly extract and render YouTube embeds
           const content = block.content.trim();
-
-          // Check if it's already an iframe (embed code)
           if (content.includes("<iframe") && content.includes("</iframe>")) {
-            // Extract the iframe src URL
             const srcMatch = content.match(/src=["']([^"']+)["']/);
-            if (srcMatch && srcMatch[1]) {
-              const embedUrl = srcMatch[1];
-              return (
-                '<div style="' +
-                baseStyle +
-                ' position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">' +
-                '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" ' +
-                'src="' +
-                embedUrl +
-                '" ' +
-                'frameborder="0" ' +
-                'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-                "allowfullscreen></iframe></div>"
-              );
-            }
-            // If we can't extract src, just clean and return the iframe
+            const embedUrl = srcMatch ? srcMatch[1] : null;
             return (
               '<div style="' +
               baseStyle +
-              ' position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">' +
-              content.replace(
-                /style="[^"]*"/g,
-                'style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"',
-              ) +
-              "</div>"
+              'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;">' +
+              '<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" src="' +
+              (embedUrl || "") +
+              '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'
             );
-          }
-          // Check if it's a YouTube URL
-          else if (
+          } else if (
             content.includes("youtube.com") ||
             content.includes("youtu.be")
           ) {
             const videoId = extractYouTubeId(content);
-            if (videoId) {
+            if (videoId)
               return (
                 '<div style="' +
                 baseStyle +
-                ' position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">' +
-                '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" ' +
-                'src="https://www.youtube.com/embed/' +
+                'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" src="https://www.youtube.com/embed/' +
                 videoId +
-                '" ' +
-                'frameborder="0" ' +
-                'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-                "allowfullscreen></iframe></div>"
+                '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'
               );
-            }
-          }
-          // Check if it's a Vimeo URL
-          else if (content.includes("vimeo.com")) {
+          } else if (content.includes("vimeo.com")) {
             const videoId = extractVimeoId(content);
-            if (videoId) {
+            if (videoId)
               return (
                 '<div style="' +
                 baseStyle +
-                ' position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">' +
-                '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" ' +
-                'src="https://player.vimeo.com/video/' +
+                'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" src="https://player.vimeo.com/video/' +
                 videoId +
-                '" ' +
-                'frameborder="0" ' +
-                'allow="autoplay; fullscreen; picture-in-picture" ' +
-                "allowfullscreen></iframe></div>"
+                '" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>'
               );
-            }
           }
-
-          // If nothing matched, just return a link
-          const linkStyle =
-            baseStyle +
-            " display: block; color: #3b82f6; text-decoration: underline; font-family: 'Open Sans', sans-serif;";
           return (
             '<a href="' +
             content +
             '" target="_blank" rel="noopener noreferrer" style="' +
-            linkStyle +
+            baseStyle +
+            "display:block;color:#3b82f6;text-decoration:underline;font-family:'Open Sans',sans-serif;" +
             '">' +
             content +
             "</a>"
@@ -372,60 +391,43 @@ function renderContentBlocks(blocks) {
           return (
             '<hr style="' +
             baseStyle +
-            ' border: 0; border-top: 2px solid #e5e7eb;" />'
+            'border:0;border-top:2px solid #e5e7eb;" />'
           );
 
         case "columnList":
           const columns = block.columns || [];
-          if (columns.length === 0) return "";
-
-          // Force columns to stay on one row - divide 100% by number of columns
-          const columnCount = columns.length;
-          let gridColumns = "";
-          if (columnCount === 1) gridColumns = "1fr";
-          else if (columnCount === 2) gridColumns = "1fr 1fr";
-          else if (columnCount === 3) gridColumns = "1fr 1fr 1fr";
-          else if (columnCount === 4) gridColumns = "1fr 1fr 1fr 1fr";
-          else gridColumns = "repeat(" + columnCount + ", 1fr)";
-
-          let columnsHtml =
+          if (!columns.length) return "";
+          const gridCols = ["1fr", "1fr 1fr", "1fr 1fr 1fr", "1fr 1fr 1fr 1fr"][
+            Math.min(columns.length - 1, 3)
+          ];
+          let colHtml =
             '<div style="' +
             baseStyle +
-            " display: grid; grid-template-columns: " +
-            gridColumns +
-            '; gap: 2rem; margin-top: 1.5rem;">';
-
-          columns.forEach(function (column) {
-            columnsHtml += "<div>";
-
-            // Column Title
-            if (column.title) {
-              columnsHtml +=
-                "<h4 style=\"font-family: 'Montserrat', sans-serif; font-size: 1.25rem; font-weight: bold; color: #1e3a8a; margin-bottom: 1rem;\">" +
-                column.title +
+            "display:grid;grid-template-columns:" +
+            gridCols +
+            ';gap:2rem;margin-top:1.5rem;">';
+          columns.forEach((col) => {
+            colHtml += "<div>";
+            if (col.title)
+              colHtml +=
+                "<h4 style=\"font-family:'Montserrat',sans-serif;font-size:1.25rem;font-weight:bold;color:#1e3a8a;margin-bottom:1rem;\">" +
+                col.title +
                 "</h4>";
-            }
-
-            // Column Items
-            if (column.items && column.items.length > 0) {
-              columnsHtml +=
-                "<ul style=\"font-family: 'Open Sans', sans-serif; line-height: 1.75; color: #4b5563; list-style: none; padding: 0;\">";
-              column.items.forEach(function (item) {
-                columnsHtml +=
-                  '<li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">';
-                columnsHtml +=
-                  '<span style="color: #00bcd4; font-size: 1.25rem; line-height: 1;">☑</span>';
-                columnsHtml += "<span>" + item + "</span>";
-                columnsHtml += "</li>";
+            if (col.items && col.items.length) {
+              colHtml +=
+                "<ul style=\"font-family:'Open Sans',sans-serif;line-height:1.75;color:#4b5563;list-style:none;padding:0;\">";
+              col.items.forEach((item) => {
+                colHtml +=
+                  '<li style="display:flex;align-items:flex-start;gap:0.5rem;margin-bottom:0.75rem;"><span style="color:#00bcd4;font-size:1.25rem;line-height:1;">☑</span><span>' +
+                  item +
+                  "</span></li>";
               });
-              columnsHtml += "</ul>";
+              colHtml += "</ul>";
             }
-
-            columnsHtml += "</div>";
+            colHtml += "</div>";
           });
-
-          columnsHtml += "</div>";
-          return columnsHtml;
+          colHtml += "</div>";
+          return colHtml;
 
         default:
           return "";
@@ -435,18 +437,14 @@ function renderContentBlocks(blocks) {
 }
 
 function extractYouTubeId(url) {
-  // Handle various YouTube URL formats
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
     /youtube\.com\/embed\/([^&\n?#]+)/,
     /youtube\.com\/v\/([^&\n?#]+)/,
   ];
-
   for (let i = 0; i < patterns.length; i++) {
     const match = url.match(patterns[i]);
-    if (match && match[1]) {
-      return match[1];
-    }
+    if (match && match[1]) return match[1];
   }
   return "";
 }
@@ -456,109 +454,100 @@ function extractVimeoId(url) {
   return match ? match[1] : "";
 }
 
+// ── Breadcrumb ────────────────────────────
 function injectBlogBreadcrumb(blogTitle) {
-  // Remove existing breadcrumb if any
-  var existing = document.querySelector('.bp-breadcrumb');
+  var existing = document.querySelector(".bp-breadcrumb");
   if (existing) existing.remove();
 
-  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
-  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
-  breadcrumbHTML += '<span class="bp-separator">›</span>';
-  breadcrumbHTML += '<a href="https://basepointengineering.com/blogs">Blogs</a>';
-  breadcrumbHTML += '<span class="bp-separator">›</span>';
-  breadcrumbHTML += '<span class="bp-current">' + blogTitle + '</span>';
-  breadcrumbHTML += '</nav>';
+  var breadcrumbHTML =
+    '<nav class="bp-breadcrumb" aria-label="Breadcrumb">' +
+    '<a href="https://basepointengineering.com">Home</a>' +
+    '<span class="bp-separator">›</span>' +
+    '<a href="https://basepointengineering.com/blogs">Blogs</a>' +
+    '<span class="bp-separator">›</span>' +
+    '<span class="bp-current">' +
+    blogTitle +
+    "</span>" +
+    "</nav>";
 
-  // Inject before the blog content
   var target = document.querySelector('[data-blog-detail="content"]');
   if (target && target.parentElement) {
-    target.parentElement.insertBefore(
-      (function() {
-        var div = document.createElement('div');
-        div.innerHTML = breadcrumbHTML;
-        return div.firstChild;
-      })(),
-      target
-    );
+    var div = document.createElement("div");
+    div.innerHTML = breadcrumbHTML;
+    target.parentElement.insertBefore(div.firstChild, target);
   }
 
-  // Inject JSON-LD BreadcrumbList schema
-  var existingSchema = document.getElementById('bp-breadcrumb-schema');
+  var existingSchema = document.getElementById("bp-breadcrumb-schema");
   if (existingSchema) existingSchema.remove();
 
   var slug = getSlugFromURL();
-  var schema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://basepointengineering.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Blogs",
-        "item": "https://basepointengineering.com/blogs"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": blogTitle,
-        "item": "https://basepointengineering.com/blog-detail?slug=" + encodeURIComponent(slug || '')
-      }
-    ]
-  };
-
-  var script = document.createElement('script');
-  script.type = 'application/ld+json';
-  script.id = 'bp-breadcrumb-schema';
-  script.textContent = JSON.stringify(schema, null, 2);
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-breadcrumb-schema";
+  script.textContent = JSON.stringify(
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: "https://basepointengineering.com",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Blogs",
+          item: "https://basepointengineering.com/blogs",
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: blogTitle,
+          item:
+            "https://basepointengineering.com/blog-detail?slug=" +
+            encodeURIComponent(slug || ""),
+        },
+      ],
+    },
+    null,
+    2,
+  );
   document.head.appendChild(script);
-
-  console.log('✓ Blog breadcrumb + JSON-LD injected');
 }
 
+// ── Error ─────────────────────────────────
 function showError(message) {
   const contentEl = document.querySelector('[data-blog-detail="content"]');
   if (contentEl) {
     contentEl.innerHTML =
-      '<div style="text-align: center; padding: 3rem;">' +
-      "<p style=\"color: #ef4444; font-size: 1.25rem; font-family: 'Open Sans', sans-serif; margin-bottom: 1rem;\">" +
+      '<div style="text-align:center;padding:3rem;"><p style="color:#ef4444;font-size:1.25rem;font-family:\'Open Sans\',sans-serif;margin-bottom:1rem;">' +
       message +
-      '</p><a href="/" style="color: #3b82f6; text-decoration: underline; font-family: \'Open Sans\', sans-serif; font-size: 1rem;">← Back to Home</a>' +
-      "</div>";
+      '</p><a href="/" style="color:#3b82f6;text-decoration:underline;font-family:\'Open Sans\',sans-serif;font-size:1rem;">← Back to Home</a></div>';
   }
 }
 
-// Load fonts and blog when page loads
+// ── Canonical ─────────────────────────────
+(function () {
+  const blogSlug = new URLSearchParams(window.location.search).get("slug");
+  if (blogSlug) {
+    const canonicalUrl =
+      "https://basepointengineering.com/blog-detail?slug=" + blogSlug;
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonicalUrl);
+  }
+})();
+
+// ── Init ──────────────────────────────────
 loadGoogleFonts();
-
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(loadBlogDetail, 500);
-  });
+  document.addEventListener("DOMContentLoaded", loadBlogDetail);
 } else {
-  setTimeout(loadBlogDetail, 500);
-}
-
-// =========================================================
-// BLOG CANONICAL INJECTION LOGIC
-// =========================================================
-const urlParams = new URLSearchParams(window.location.search);
-const blogSlug = urlParams.get("slug");
-
-if (blogSlug) {
-  // Points exactly to your dynamic blog post URL
-  const canonicalUrl = `https://basepointengineering.com/blog-detail?slug=${blogSlug}`;
-
-  let link = document.querySelector("link[rel='canonical']");
-  if (!link) {
-    link = document.createElement("link");
-    link.setAttribute("rel", "canonical");
-    document.head.appendChild(link);
-  }
-  link.setAttribute("href", canonicalUrl);
+  loadBlogDetail();
 }
