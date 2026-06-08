@@ -47,18 +47,34 @@ function setMetaTag(property, content) {
   tag.setAttribute("content", content);
 }
 
-// ── Breadcrumb (outside grid, before it) ────
+// ── Fix wrapper layout via JS (overrides Webflow inline styles) ────
+function fixLayout() {
+  var wrapper = document.querySelector(".div-block-15");
+  if (wrapper) {
+    wrapper.style.cssText =
+      "max-width:100% !important; width:100% !important; padding:0 !important; margin:0 !important; background:#f3f4f6 !important; display:block !important;";
+  }
+  var grid = document.querySelector('[data-services="grid"]');
+  if (grid) {
+    grid.style.cssText =
+      "display:grid !important; grid-template-columns:repeat(2,1fr) !important; gap:1.5rem !important; padding:2rem !important; width:100% !important; max-width:1200px !important; margin:0 auto !important; box-sizing:border-box !important; background:transparent !important;";
+  }
+}
+
+// ── Breadcrumb ────────────────────────────
 function injectBreadcrumb() {
   var existing = document.querySelector(".bp-breadcrumb-wrapper");
   if (existing) existing.remove();
 
   var wrapper = document.createElement("div");
   wrapper.className = "bp-breadcrumb-wrapper";
+  wrapper.style.cssText =
+    "background:#f3f4f6; padding:12px 2rem; border-bottom:1px solid #e5e7eb; width:100%; box-sizing:border-box;";
   wrapper.innerHTML =
-    '<nav class="bp-breadcrumb" aria-label="Breadcrumb">' +
-    '<a href="https://basepointengineering.com">Home</a>' +
-    '<span class="bp-separator">›</span>' +
-    '<span class="bp-current">Services</span>' +
+    '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-family:Open Sans,sans-serif;font-size:14px;color:#6b7280;max-width:1200px;margin:0 auto;">' +
+    '<a href="https://basepointengineering.com" style="color:#6b7280;text-decoration:none;">Home</a>' +
+    '<span style="color:#d1d5db;font-size:12px;">›</span>' +
+    '<span style="color:#111827;font-weight:500;">Services</span>' +
     "</nav>";
 
   var grid = document.querySelector('[data-services="grid"]');
@@ -114,7 +130,7 @@ function getIcon(name) {
 
 // ── Skeleton ───────────────────────────────
 function showSkeleton(grid) {
-  var count = window.innerWidth <= 480 ? 2 : 4;
+  var count = window.innerWidth <= 768 ? 2 : 4;
   var h = "";
   for (var i = 0; i < count; i++) {
     h +=
@@ -152,6 +168,7 @@ async function loadServices() {
   }
 }
 
+// ── Display — uses onclick instead of <a> to bypass Webflow click interceptor ──
 function displayServices(services) {
   var grid = document.querySelector('[data-services="grid"]');
   if (!grid) return;
@@ -160,14 +177,24 @@ function displayServices(services) {
     .map(function (svc) {
       var icon = getIcon(svc.icon);
       return (
-        '<a href="/service-detail?slug=' + svc.slug + '" class="svc-card">' +
-        '<div class="svc-card-icon"><i data-lucide="' + icon + '" class="svc-icon"></i></div>' +
+        '<div class="svc-card" onclick="window.location.href=\'/service-detail?slug=' +
+        svc.slug +
+        '\'" style="cursor:pointer;" title="' +
+        svc.title +
+        '">' +
+        '<div class="svc-card-icon"><i data-lucide="' +
+        icon +
+        '" class="svc-icon"></i></div>' +
         '<div class="svc-card-body">' +
-        '<h3 class="svc-card-title">' + svc.title + '</h3>' +
-        '<p class="svc-card-excerpt">' + (svc.excerpt || '') + '</p>' +
-        '</div>' +
+        '<h3 class="svc-card-title">' +
+        svc.title +
+        "</h3>" +
+        '<p class="svc-card-excerpt">' +
+        (svc.excerpt || "") +
+        "</p>" +
+        "</div>" +
         '<div class="svc-card-arrow">›</div>' +
-        '</a>'
+        "</div>"
       );
     })
     .join("");
@@ -177,12 +204,19 @@ function displayServices(services) {
       window.lucide.createIcons();
     }, 50);
   }
+
+  // Re-apply layout after cards are injected
+  fixLayout();
 }
 
 // ── Init ───────────────────────────────────
 injectBreadcrumb();
+fixLayout();
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", loadServices);
+  document.addEventListener("DOMContentLoaded", function () {
+    loadServices();
+    fixLayout();
+  });
 } else {
   loadServices();
 }
