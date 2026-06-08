@@ -160,24 +160,14 @@ function displayServices(services) {
     .map(function (svc) {
       var icon = getIcon(svc.icon);
       return (
-        '<div class="svc-card" onclick="window.location.href=\'/service-detail?slug=' +
-        svc.slug +
-        '\'" style="cursor:pointer;" title="' +
-        svc.title +
-        '">' +
-        '<div class="svc-card-icon"><i data-lucide="' +
-        icon +
-        '" class="svc-icon"></i></div>' +
+        '<a href="/service-detail?slug=' + svc.slug + '" class="svc-card">' +
+        '<div class="svc-card-icon"><i data-lucide="' + icon + '" class="svc-icon"></i></div>' +
         '<div class="svc-card-body">' +
-        '<h3 class="svc-card-title">' +
-        svc.title +
-        "</h3>" +
-        '<p class="svc-card-excerpt">' +
-        (svc.excerpt || "") +
-        "</p>" +
-        "</div>" +
+        '<h3 class="svc-card-title">' + svc.title + '</h3>' +
+        '<p class="svc-card-excerpt">' + (svc.excerpt || '') + '</p>' +
+        '</div>' +
         '<div class="svc-card-arrow">›</div>' +
-        "</div>"
+        '</a>'
       );
     })
     .join("");
