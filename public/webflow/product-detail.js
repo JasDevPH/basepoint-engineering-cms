@@ -42,80 +42,159 @@ function skelBar(w, h, mb) {
   );
 }
 
+// ── Replace the showSkeleton function in product-detail.js with this ──
+
 function showSkeleton() {
-  // Title
-  const titleEl = document.querySelector('[data-product-detail="title"]');
-  if (titleEl) titleEl.innerHTML = skelBar("60%", "2.5rem", "0.5rem");
+  const SKEL_S =
+    "background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite;border-radius:6px;";
 
-  // Category
-  const catEl = document.querySelector('[data-product-detail="category"]');
-  if (catEl) catEl.innerHTML = skelBar("30%", "1.5rem", "0");
-
-  // Breadcrumb placeholder
-  const breadcrumbTarget = document.querySelector(
-    '[data-product-detail="content"]',
-  );
-  if (breadcrumbTarget && breadcrumbTarget.parentElement) {
-    let existingSkel = document.getElementById("breadcrumb-skel");
-    if (!existingSkel) {
-      existingSkel = document.createElement("div");
-      existingSkel.id = "breadcrumb-skel";
-      existingSkel.innerHTML = skelBar("35%", "1rem", "0");
-      existingSkel.style.marginBottom = "1rem";
-      breadcrumbTarget.parentElement.insertBefore(
-        existingSkel,
-        breadcrumbTarget,
-      );
-    }
+  function bar(w, h, mb) {
+    return (
+      '<div style="height:' +
+      h +
+      ";width:" +
+      w +
+      ";" +
+      SKEL_S +
+      "margin-bottom:" +
+      (mb || "0.75rem") +
+      ';display:block;"></div>'
+    );
   }
 
-  // Image
-  const imgEl = document.querySelector('[data-product-detail="image"]');
-  if (imgEl) {
-    imgEl.style.cssText = "width:100%;height:350px;" + SKEL_STYLE;
-    imgEl.src =
-      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-  }
-
-  // Content
-  const contentEl = document.querySelector('[data-product-detail="content"]');
-  if (contentEl) {
-    let html = skelBar("50%", "2rem", "1.5rem");
-    for (let i = 0; i < 5; i++) {
-      html += skelBar(i % 2 === 0 ? "100%" : "80%", "1rem");
-    }
-    html +=
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:2rem;">';
-    for (let i = 0; i < 4; i++) {
-      html +=
-        '<div style="padding:1.5rem;border:2px solid #e5e7eb;border-radius:12px;">' +
-        '<div style="width:56px;height:56px;' +
-        SKEL_STYLE +
-        'border-radius:12px;margin-bottom:1rem;"></div>' +
-        skelBar("65%", "1.125rem") +
-        skelBar("100%", "0.875rem") +
-        skelBar("75%", "0.875rem", "0") +
-        "</div>";
-    }
-    html += "</div>";
-    contentEl.innerHTML = html;
-  }
-
-  // Side nav skeleton
+  // ── Side nav skeleton — full panel with category rows ──
   const navContainer = document.querySelector('[data-product-nav="container"]');
   if (navContainer) {
     let navHtml =
       '<div style="padding:1.5rem;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">';
-    navHtml += skelBar("50%", "1rem", "1rem");
+    // 6 category rows with expand arrows
     for (let i = 0; i < 6; i++) {
       navHtml +=
-        '<div style="height:2rem;width:100%;' +
-        SKEL_STYLE +
-        'margin-bottom:0.5rem;border-radius:4px;"></div>';
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;margin-bottom:0.5rem;">' +
+        '<div style="height:0.875rem;width:' +
+        (i % 2 === 0 ? "55%" : "45%") +
+        ";" +
+        SKEL_S +
+        '"></div>' +
+        '<div style="height:0.75rem;width:12px;' +
+        SKEL_S +
+        '"></div>' +
+        "</div>";
+      // Show sub-items for first category
+      if (i === 0) {
+        navHtml +=
+          '<div style="padding-left:0.75rem;margin-bottom:0.5rem;">' +
+          '<div style="height:2rem;width:100%;background:#3b82f6;border-radius:4px;opacity:0.3;margin-bottom:0.25rem;"></div>' +
+          bar("80%", "1.75rem", "0.25rem") +
+          "</div>";
+      }
     }
     navHtml += "</div>";
     navContainer.innerHTML = navHtml;
   }
+
+  // ── Image skeleton — large square like actual product image ──
+  const imgEl = document.querySelector('[data-product-detail="image"]');
+  if (imgEl) {
+    imgEl.style.cssText =
+      "width:100%;height:450px;" + SKEL_S + "border-radius:8px;display:block;";
+    imgEl.src =
+      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  }
+
+  // ── Title skeleton ──
+  const titleEl = document.querySelector('[data-product-detail="title"]');
+  if (titleEl) {
+    titleEl.innerHTML = bar("55%", "2.25rem", "0.5rem");
+    titleEl.style.display = "block";
+  }
+
+  // ── Category badge skeleton ──
+  const catEl = document.querySelector('[data-product-detail="category"]');
+  if (catEl) {
+    catEl.innerHTML =
+      '<div style="height:1.5rem;width:100px;' +
+      SKEL_S +
+      'border-radius:9999px;display:inline-block;"></div>';
+  }
+
+  // ── Breadcrumb skeleton ──
+  const contentTarget = document.querySelector(
+    '[data-product-detail="content"]',
+  );
+  if (contentTarget && contentTarget.parentElement) {
+    let existingSkel = document.getElementById("breadcrumb-skel");
+    if (!existingSkel) {
+      existingSkel = document.createElement("div");
+      existingSkel.id = "breadcrumb-skel";
+      existingSkel.style.marginBottom = "1rem";
+      existingSkel.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="height:0.875rem;width:40px;' +
+        SKEL_S +
+        '"></div>' +
+        '<div style="height:0.875rem;width:8px;' +
+        SKEL_S +
+        '"></div>' +
+        '<div style="height:0.875rem;width:60px;' +
+        SKEL_S +
+        '"></div>' +
+        '<div style="height:0.875rem;width:8px;' +
+        SKEL_S +
+        '"></div>' +
+        '<div style="height:0.875rem;width:100px;' +
+        SKEL_S +
+        '"></div>' +
+        "</div>";
+      contentTarget.parentElement.insertBefore(existingSkel, contentTarget);
+    }
+  }
+
+  // ── Configurator skeleton ──
+  const imgParent = imgEl ? imgEl.parentElement : null;
+  if (imgParent) {
+    let existingConfSkel = document.getElementById("configurator-skel");
+    if (!existingConfSkel) {
+      existingConfSkel = document.createElement("div");
+      existingConfSkel.id = "configurator-skel";
+      existingConfSkel.style.cssText =
+        "background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:2rem;margin-top:1.5rem;";
+      existingConfSkel.innerHTML =
+        bar("50%", "1.25rem", "1.5rem") +
+        // Select field 1
+        '<div style="margin-bottom:1rem;">' +
+        bar("25%", "0.875rem", "0.5rem") +
+        bar("100%", "2.75rem", "0") +
+        "</div>" +
+        // Select field 2
+        '<div style="margin-bottom:1.5rem;">' +
+        bar("30%", "0.875rem", "0.5rem") +
+        bar("100%", "2.75rem", "0") +
+        "</div>" +
+        // Purchase button
+        '<div style="height:3rem;width:100%;background:linear-gradient(90deg,#d1fae5 25%,#ecfdf5 50%,#d1fae5 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite;border-radius:8px;"></div>';
+      imgParent.insertAdjacentElement("afterend", existingConfSkel);
+    }
+  }
+
+  // ── Content skeleton ──
+  if (contentTarget) {
+    let html = bar("50%", "2rem", "1.5rem");
+    for (let i = 0; i < 4; i++) {
+      html += bar(i % 2 === 0 ? "100%" : "80%", "1rem");
+    }
+    contentTarget.innerHTML = html;
+  }
+}
+
+function clearSkeletons() {
+  const breadcrumbSkel = document.getElementById("breadcrumb-skel");
+  if (breadcrumbSkel) breadcrumbSkel.remove();
+  const configuratorSkel = document.getElementById("configurator-skel");
+  if (configuratorSkel) configuratorSkel.remove();
+  // Reset image style
+  const imgEl = document.querySelector('[data-product-detail="image"]');
+  if (imgEl) imgEl.style.cssText = "";
 }
 
 function clearBreadcrumbSkel() {
@@ -258,6 +337,7 @@ async function loadProductDetail() {
 }
 
 function displayProductDetail(product) {
+  clearSkeletons();
   currentProductStripePaymentLink = product.stripePaymentLink || null;
   allVariants = product.variants || [];
   const enabledVariants = allVariants.filter(function (v) {
