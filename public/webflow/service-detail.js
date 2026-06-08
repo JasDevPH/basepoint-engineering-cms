@@ -130,6 +130,10 @@ async function loadSideNavigation(currentSlug) {
 }
 
 function displaySideNavigation(services, currentSlug) {
+  // Prevent duplicate mobile nav
+  const existingMobileNav = document.getElementById("side-nav-mobile");
+  if (existingMobileNav) existingMobileNav.remove();
+
   let html =
     '<div class="side-nav"><div class="side-nav-title">Our Services</div>';
   services.forEach((service) => {
