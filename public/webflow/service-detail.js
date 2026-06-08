@@ -114,20 +114,27 @@ function getSlugFromURL() {
 }
 
 // ── Side navigation ───────────────────────
+var navLoading = false;
+
 async function loadSideNavigation(currentSlug) {
+  if (navLoading) return; // prevent concurrent calls
+  navLoading = true;
   try {
     const response = await fetch(API_URL + "/api/services");
     const data = await response.json();
     if (data.success) displaySideNavigation(data.data, currentSlug);
   } catch (error) {
     console.error("Error loading navigation:", error);
+  } finally {
+    navLoading = false;
   }
 }
 
 function displaySideNavigation(services, currentSlug) {
-  // ── Always remove existing mobile nav first ──
-  var existingMobileNav = document.getElementById("side-nav-mobile");
-  if (existingMobileNav) existingMobileNav.remove();
+  // Remove ALL existing mobile navs aggressively
+  document.querySelectorAll("#side-nav-mobile").forEach(function (el) {
+    el.remove();
+  });
 
   let html =
     '<div class="side-nav"><div class="side-nav-title">Our Services</div>';
@@ -148,11 +155,11 @@ function displaySideNavigation(services, currentSlug) {
   });
   html += "</div>";
 
-  // ── Desktop: inject into side nav container ──
+  // Desktop: inject into side nav container
   const navContainer = document.querySelector('[data-service-nav="container"]');
   if (navContainer) navContainer.innerHTML = html;
 
-  // ── Mobile/tablet: inject below content ──
+  // Mobile/tablet: inject below content
   if (window.innerWidth <= 991) {
     const contentContainer = document.querySelector('[data-service="content"]');
     if (contentContainer && contentContainer.parentElement) {
