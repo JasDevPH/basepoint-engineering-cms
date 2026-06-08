@@ -119,6 +119,7 @@ function showSkeleton(grid) {
     html += '</div>';
   }
   grid.innerHTML = html;
+  injectBreadcrumb(); // re-inject after innerHTML wipe
 }
 
 async function loadServices() {
@@ -160,6 +161,7 @@ function displayServices(services) {
   });
 
   grid.innerHTML = html;
+  injectBreadcrumb(); // re-inject after innerHTML wipe
 
   // Initialize Lucide icons
   if (window.lucide) {
