@@ -117,7 +117,7 @@ function getSlugFromURL() {
 var navLoading = false;
 
 async function loadSideNavigation(currentSlug) {
-  if (navLoading) return; // prevent concurrent calls
+  if (navLoading) return;
   navLoading = true;
   try {
     const response = await fetch(API_URL + "/api/services");
@@ -131,7 +131,7 @@ async function loadSideNavigation(currentSlug) {
 }
 
 function displaySideNavigation(services, currentSlug) {
-  // Remove ALL existing mobile navs aggressively
+  // Remove ALL existing mobile navs
   document.querySelectorAll("#side-nav-mobile").forEach(function (el) {
     el.remove();
   });
@@ -155,20 +155,18 @@ function displaySideNavigation(services, currentSlug) {
   });
   html += "</div>";
 
-  // Desktop: inject into side nav container
+  // Always inject into desktop container
   const navContainer = document.querySelector('[data-service-nav="container"]');
   if (navContainer) navContainer.innerHTML = html;
 
-  // Mobile/tablet: inject below content
-  if (window.innerWidth <= 991) {
-    const contentContainer = document.querySelector('[data-service="content"]');
-    if (contentContainer && contentContainer.parentElement) {
-      const mobileNav = document.createElement("div");
-      mobileNav.id = "side-nav-mobile";
-      mobileNav.className = "side-nav-mobile-container";
-      mobileNav.innerHTML = html;
-      contentContainer.parentElement.appendChild(mobileNav);
-    }
+  // Always inject mobile nav — CSS controls visibility via display:none/block
+  const contentContainer = document.querySelector('[data-service="content"]');
+  if (contentContainer && contentContainer.parentElement) {
+    const mobileNav = document.createElement("div");
+    mobileNav.id = "side-nav-mobile";
+    mobileNav.className = "side-nav-mobile-container";
+    mobileNav.innerHTML = html;
+    contentContainer.parentElement.appendChild(mobileNav);
   }
 
   setTimeout(() => {
@@ -176,20 +174,9 @@ function displaySideNavigation(services, currentSlug) {
   }, 100);
 }
 
-// ── Resize: only reload nav when crossing breakpoint ──
-let resizeTimeout;
-let lastIsMobile = window.innerWidth <= 991;
-window.addEventListener("resize", function () {
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(function () {
-    const nowIsMobile = window.innerWidth <= 991;
-    if (nowIsMobile !== lastIsMobile) {
-      lastIsMobile = nowIsMobile;
-      const slug = getSlugFromURL();
-      if (slug) loadSideNavigation(slug);
-    }
-  }, 250);
-});
+// ── Resize: removed — CSS handles visibility now ──
+// No resize listener needed since both navs are always in DOM
+// CSS shows/hides them based on breakpoint
 
 // ── Load service detail ───────────────────
 async function loadServiceDetail() {
