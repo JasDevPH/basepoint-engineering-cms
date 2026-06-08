@@ -296,6 +296,9 @@ function displayProductDetail(product) {
     console.log("✓ Category updated");
   }
 
+  // Breadcrumb injection
+  injectBreadcrumb(product.title, product.category || null);
+
   const imgEl = document.querySelector('[data-product-detail="image"]');
   if (imgEl && product.imageUrl) {
     imgEl.src = product.imageUrl + "?t=" + new Date().getTime();
@@ -1475,6 +1478,80 @@ function goToPage(pageNumber) {
   if (tableContainer) {
     tableContainer.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+}
+
+function injectBreadcrumb(productTitle, category) {
+  // Remove existing breadcrumb if any
+  var existing = document.querySelector('.bp-breadcrumb');
+  if (existing) existing.remove();
+
+  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
+  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+
+  if (category) {
+    breadcrumbHTML += '<a href="https://www.basepointengineering.com/products?category=' + encodeURIComponent(category) + '">' + category + '</a>';
+    breadcrumbHTML += '<span class="bp-separator">›</span>';
+  } else {
+    breadcrumbHTML += '<a href="https://www.basepointengineering.com/products">Products</a>';
+    breadcrumbHTML += '<span class="bp-separator">›</span>';
+  }
+
+  breadcrumbHTML += '<span class="bp-current">' + productTitle + '</span>';
+  breadcrumbHTML += '</nav>';
+
+  // Inject after the main content container's parent, before the content starts
+  var target = document.querySelector('[data-product-detail="content"]');
+  if (target && target.parentElement) {
+    target.parentElement.insertBefore(
+      (function() {
+        var div = document.createElement('div');
+        div.innerHTML = breadcrumbHTML;
+        return div.firstChild;
+      })(),
+      target
+    );
+  }
+
+  // Inject JSON-LD BreadcrumbList schema
+  var schemaScript = document.getElementById('bp-breadcrumb-schema');
+  if (schemaScript) schemaScript.remove();
+
+  var slug = getSlugFromURL();
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.basepointengineering.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": category || "Products",
+        "item": category
+          ? "https://www.basepointengineering.com/products?category=" + encodeURIComponent(category)
+          : "https://www.basepointengineering.com/products"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": productTitle,
+        "item": "https://www.basepointengineering.com/product-detail?slug=" + encodeURIComponent(slug || '')
+      }
+    ]
+  };
+
+  var script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'bp-breadcrumb-schema';
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+
+  console.log('✓ Breadcrumb + JSON-LD injected');
 }
 
 function showError(message) {

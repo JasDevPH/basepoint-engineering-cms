@@ -187,6 +187,9 @@ function displayServiceDetail(service) {
   setMetaTag('og:url', window.location.href);
   setMetaTag('og:type', 'website');
 
+  // Breadcrumb injection
+  injectServiceBreadcrumb(service.title);
+
   // Update service title
   const titleEl = document.querySelector('[data-service="title"]');
   if (titleEl) {
@@ -353,6 +356,71 @@ function renderServiceContentBlocks(blocks) {
         return '';
     }
   }).join('');
+}
+
+function injectServiceBreadcrumb(serviceTitle) {
+  // Remove existing breadcrumb if any
+  var existing = document.querySelector('.bp-breadcrumb');
+  if (existing) existing.remove();
+
+  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
+  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  breadcrumbHTML += '<a href="https://www.basepointengineering.com/services">Services</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  breadcrumbHTML += '<span class="bp-current">' + serviceTitle + '</span>';
+  breadcrumbHTML += '</nav>';
+
+  // Inject before the service content
+  var target = document.querySelector('[data-service="content"]');
+  if (target && target.parentElement) {
+    target.parentElement.insertBefore(
+      (function() {
+        var div = document.createElement('div');
+        div.innerHTML = breadcrumbHTML;
+        return div.firstChild;
+      })(),
+      target
+    );
+  }
+
+  // Inject JSON-LD BreadcrumbList schema
+  var existingSchema = document.getElementById('bp-breadcrumb-schema');
+  if (existingSchema) existingSchema.remove();
+
+  var slug = getSlugFromURL();
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.basepointengineering.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Services",
+        "item": "https://www.basepointengineering.com/services"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": serviceTitle,
+        "item": "https://www.basepointengineering.com/service-detail?slug=" + encodeURIComponent(slug || '')
+      }
+    ]
+  };
+
+  var script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'bp-breadcrumb-schema';
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+
+  console.log('✓ Service breadcrumb + JSON-LD injected');
 }
 
 function showError(message) {

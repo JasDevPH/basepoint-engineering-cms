@@ -122,6 +122,9 @@ function displayBlogDetail(blog) {
   if (blog.imageUrl) setMetaTag('og:image', blog.imageUrl);
   if (blog.imageUrl) setMetaTag('twitter:image', blog.imageUrl);
 
+  // Breadcrumb injection
+  injectBlogBreadcrumb(blog.title);
+
   // Update blog title
   const titleEl = document.querySelector('[data-blog-detail="title"]');
   if (titleEl) {
@@ -451,6 +454,71 @@ function extractYouTubeId(url) {
 function extractVimeoId(url) {
   const match = url.match(/vimeo\.com\/(\d+)/);
   return match ? match[1] : "";
+}
+
+function injectBlogBreadcrumb(blogTitle) {
+  // Remove existing breadcrumb if any
+  var existing = document.querySelector('.bp-breadcrumb');
+  if (existing) existing.remove();
+
+  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
+  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  breadcrumbHTML += '<a href="https://www.basepointengineering.com/blogs">Blogs</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  breadcrumbHTML += '<span class="bp-current">' + blogTitle + '</span>';
+  breadcrumbHTML += '</nav>';
+
+  // Inject before the blog content
+  var target = document.querySelector('[data-blog-detail="content"]');
+  if (target && target.parentElement) {
+    target.parentElement.insertBefore(
+      (function() {
+        var div = document.createElement('div');
+        div.innerHTML = breadcrumbHTML;
+        return div.firstChild;
+      })(),
+      target
+    );
+  }
+
+  // Inject JSON-LD BreadcrumbList schema
+  var existingSchema = document.getElementById('bp-breadcrumb-schema');
+  if (existingSchema) existingSchema.remove();
+
+  var slug = getSlugFromURL();
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.basepointengineering.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blogs",
+        "item": "https://www.basepointengineering.com/blogs"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": blogTitle,
+        "item": "https://www.basepointengineering.com/blog-detail?slug=" + encodeURIComponent(slug || '')
+      }
+    ]
+  };
+
+  var script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'bp-breadcrumb-schema';
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+
+  console.log('✓ Blog breadcrumb + JSON-LD injected');
 }
 
 function showError(message) {
