@@ -1486,14 +1486,14 @@ function injectBreadcrumb(productTitle, category) {
   if (existing) existing.remove();
 
   var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
-  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
   breadcrumbHTML += '<span class="bp-separator">›</span>';
 
   if (category) {
-    breadcrumbHTML += '<a href="https://www.basepointengineering.com/products?category=' + encodeURIComponent(category) + '">' + category + '</a>';
+    breadcrumbHTML += '<a href="https://basepointengineering.com/products?category=' + encodeURIComponent(category) + '">' + category + '</a>';
     breadcrumbHTML += '<span class="bp-separator">›</span>';
   } else {
-    breadcrumbHTML += '<a href="https://www.basepointengineering.com/products">Products</a>';
+    breadcrumbHTML += '<a href="https://basepointengineering.com/products">Products</a>';
     breadcrumbHTML += '<span class="bp-separator">›</span>';
   }
 
@@ -1526,21 +1526,21 @@ function injectBreadcrumb(productTitle, category) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.basepointengineering.com"
+        "item": "https://basepointengineering.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": category || "Products",
         "item": category
-          ? "https://www.basepointengineering.com/products?category=" + encodeURIComponent(category)
-          : "https://www.basepointengineering.com/products"
+          ? "https://basepointengineering.com/products?category=" + encodeURIComponent(category)
+          : "https://basepointengineering.com/products"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": productTitle,
-        "item": "https://www.basepointengineering.com/product-detail?slug=" + encodeURIComponent(slug || '')
+        "item": "https://basepointengineering.com/product-detail?slug=" + encodeURIComponent(slug || '')
       }
     ]
   };
@@ -1774,7 +1774,7 @@ const productSlug = urlParams.get("slug");
 
 if (productSlug) {
   // Change 'product-detail' to 'blog-detail' on your blog template page!
-  const canonicalUrl = `https://www.basepointengineering.com/product-detail?slug=${productSlug}`;
+  const canonicalUrl = `https://basepointengineering.com/product-detail?slug=${productSlug}`;
 
   let link = document.querySelector("link[rel='canonical']");
   if (!link) {

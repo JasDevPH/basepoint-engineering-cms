@@ -462,9 +462,9 @@ function injectBlogBreadcrumb(blogTitle) {
   if (existing) existing.remove();
 
   var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
-  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
   breadcrumbHTML += '<span class="bp-separator">›</span>';
-  breadcrumbHTML += '<a href="https://www.basepointengineering.com/blogs">Blogs</a>';
+  breadcrumbHTML += '<a href="https://basepointengineering.com/blogs">Blogs</a>';
   breadcrumbHTML += '<span class="bp-separator">›</span>';
   breadcrumbHTML += '<span class="bp-current">' + blogTitle + '</span>';
   breadcrumbHTML += '</nav>';
@@ -495,19 +495,19 @@ function injectBlogBreadcrumb(blogTitle) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.basepointengineering.com"
+        "item": "https://basepointengineering.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Blogs",
-        "item": "https://www.basepointengineering.com/blogs"
+        "item": "https://basepointengineering.com/blogs"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": blogTitle,
-        "item": "https://www.basepointengineering.com/blog-detail?slug=" + encodeURIComponent(slug || '')
+        "item": "https://basepointengineering.com/blog-detail?slug=" + encodeURIComponent(slug || '')
       }
     ]
   };
@@ -552,7 +552,7 @@ const blogSlug = urlParams.get("slug");
 
 if (blogSlug) {
   // Points exactly to your dynamic blog post URL
-  const canonicalUrl = `https://www.basepointengineering.com/blog-detail?slug=${blogSlug}`;
+  const canonicalUrl = `https://basepointengineering.com/blog-detail?slug=${blogSlug}`;
 
   let link = document.querySelector("link[rel='canonical']");
   if (!link) {

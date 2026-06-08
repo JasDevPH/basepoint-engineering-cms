@@ -6,7 +6,7 @@ document.title = 'Engineering Services | Basepoint Engineering';
 
 (function setStaticSEO() {
   var desc = 'Professional engineering services — custom design, structural inspection, lifting equipment, and CWB welding. PE-certified, Alberta, Canada.';
-  var canonical = 'https://www.basepointengineering.com/services';
+  var canonical = 'https://basepointengineering.com/services';
 
   var metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
@@ -52,7 +52,7 @@ function injectBreadcrumb() {
   if (existing) existing.remove();
 
   var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="text-align:center;">';
-  html += '<a href="https://www.basepointengineering.com">Home</a>';
+  html += '<a href="https://basepointengineering.com">Home</a>';
   html += '<span class="bp-separator">›</span>';
   html += '<span class="bp-current">Services</span>';
   html += '</nav>';
@@ -72,8 +72,8 @@ function injectBreadcrumb() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.basepointengineering.com" },
-      { "@type": "ListItem", "position": 2, "name": "Services", "item": "https://www.basepointengineering.com/services" }
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://basepointengineering.com" },
+      { "@type": "ListItem", "position": 2, "name": "Services", "item": "https://basepointengineering.com/services" }
     ]
   };
 

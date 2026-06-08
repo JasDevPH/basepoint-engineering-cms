@@ -364,9 +364,9 @@ function injectServiceBreadcrumb(serviceTitle) {
   if (existing) existing.remove();
 
   var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
-  breadcrumbHTML += '<a href="https://www.basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
   breadcrumbHTML += '<span class="bp-separator">›</span>';
-  breadcrumbHTML += '<a href="https://www.basepointengineering.com/services">Services</a>';
+  breadcrumbHTML += '<a href="https://basepointengineering.com/services">Services</a>';
   breadcrumbHTML += '<span class="bp-separator">›</span>';
   breadcrumbHTML += '<span class="bp-current">' + serviceTitle + '</span>';
   breadcrumbHTML += '</nav>';
@@ -397,19 +397,19 @@ function injectServiceBreadcrumb(serviceTitle) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.basepointengineering.com"
+        "item": "https://basepointengineering.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Services",
-        "item": "https://www.basepointengineering.com/services"
+        "item": "https://basepointengineering.com/services"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": serviceTitle,
-        "item": "https://www.basepointengineering.com/service-detail?slug=" + encodeURIComponent(slug || '')
+        "item": "https://basepointengineering.com/service-detail?slug=" + encodeURIComponent(slug || '')
       }
     ]
   };
@@ -451,7 +451,7 @@ if (document.readyState === 'loading') {
   const serviceSlug = urlParams.get('slug');
 
   if (serviceSlug) {
-    const canonicalUrl = `https://www.basepointengineering.com/service-detail?slug=${serviceSlug}`;
+    const canonicalUrl = `https://basepointengineering.com/service-detail?slug=${serviceSlug}`;
 
     let link = document.querySelector("link[rel='canonical']");
     if (!link) {
