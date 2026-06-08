@@ -104,9 +104,26 @@ function getLucideIcon(iconName) {
   return ICON_MAP[iconName] || 'briefcase';
 }
 
+function showSkeleton(grid) {
+  var count = window.innerWidth <= 480 ? 2 : 4;
+  var html = '';
+  for (var i = 0; i < count; i++) {
+    html += '<div class="svc-card svc-skeleton">';
+    html += '<div class="svc-card-icon skel-shimmer"></div>';
+    html += '<div class="svc-card-body">';
+    html += '<div class="skel-line skel-line-title skel-shimmer"></div>';
+    html += '<div class="skel-line skel-shimmer"></div>';
+    html += '<div class="skel-line skel-line-short skel-shimmer"></div>';
+    html += '</div>';
+    html += '<div class="svc-card-arrow skel-shimmer" style="width:20px;height:20px;border-radius:50%;"></div>';
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
 async function loadServices() {
   var grid = document.querySelector('[data-services="grid"]');
-  if (grid) grid.innerHTML = '<div class="svc-loading">Loading services...</div>';
+  if (grid) showSkeleton(grid);
 
   try {
     var res = await fetch(API_URL + '/api/services');
