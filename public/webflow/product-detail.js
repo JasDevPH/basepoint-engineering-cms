@@ -1,44 +1,129 @@
 // FILE: public/webflow/product-detail.js
+const API_URL = "https://cms.basepointengineering.com";
 
-const API_URL = "https://cms.basepointengineering.com"; // Change to production URL when deploying
-
-// Helper to set or create a meta tag
 function setMetaTag(property, content) {
   if (!content) return;
-  var tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
+  var tag =
+    document.querySelector('meta[property="' + property + '"]') ||
+    document.querySelector('meta[name="' + property + '"]');
   if (!tag) {
-    tag = document.createElement('meta');
-    if (property.indexOf('og:') === 0) tag.setAttribute('property', property);
-    else tag.setAttribute('name', property);
+    tag = document.createElement("meta");
+    if (property.indexOf("og:") === 0) tag.setAttribute("property", property);
+    else tag.setAttribute("name", property);
     document.head.appendChild(tag);
   }
-  tag.setAttribute('content', content);
+  tag.setAttribute("content", content);
 }
+
 let allVariants = [];
 let selectedVariant = null;
 let currentPage = 1;
 const itemsPerPage = 10;
-let currentProductStripePaymentLink = null; // Stripe Payment Link for current product
+let currentProductStripePaymentLink = null;
 
-// Show/hide loading
-function showLoading() {
-  const loader = document.createElement("div");
-  loader.id = "product-loading-screen";
-  loader.className = "product-loading-screen";
-  loader.innerHTML =
-    '<div class="product-spinner"></div><div class="product-loading-text">Loading product...</div>';
-  document.body.appendChild(loader);
+// ── Skeleton helpers ──────────────────────
+const SKEL = "linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%)";
+const SKEL_STYLE =
+  "background:" +
+  SKEL +
+  ";background-size:200% 100%;animation:skel-shimmer 1.5s infinite;border-radius:6px;";
+
+function skelBar(w, h, mb) {
+  return (
+    '<div style="height:' +
+    h +
+    ";width:" +
+    w +
+    ";" +
+    SKEL_STYLE +
+    "margin-bottom:" +
+    (mb || "0.75rem") +
+    ';"></div>'
+  );
 }
 
-function hideLoading() {
-  const loader = document.getElementById("product-loading-screen");
-  if (loader) {
-    loader.classList.add("hidden");
-    setTimeout(() => loader.remove(), 300);
+function showSkeleton() {
+  // Title
+  const titleEl = document.querySelector('[data-product-detail="title"]');
+  if (titleEl) titleEl.innerHTML = skelBar("60%", "2.5rem", "0.5rem");
+
+  // Category
+  const catEl = document.querySelector('[data-product-detail="category"]');
+  if (catEl) catEl.innerHTML = skelBar("30%", "1.5rem", "0");
+
+  // Breadcrumb placeholder
+  const breadcrumbTarget = document.querySelector(
+    '[data-product-detail="content"]',
+  );
+  if (breadcrumbTarget && breadcrumbTarget.parentElement) {
+    let existingSkel = document.getElementById("breadcrumb-skel");
+    if (!existingSkel) {
+      existingSkel = document.createElement("div");
+      existingSkel.id = "breadcrumb-skel";
+      existingSkel.innerHTML = skelBar("35%", "1rem", "0");
+      existingSkel.style.marginBottom = "1rem";
+      breadcrumbTarget.parentElement.insertBefore(
+        existingSkel,
+        breadcrumbTarget,
+      );
+    }
+  }
+
+  // Image
+  const imgEl = document.querySelector('[data-product-detail="image"]');
+  if (imgEl) {
+    imgEl.style.cssText = "width:100%;height:350px;" + SKEL_STYLE;
+    imgEl.src =
+      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  }
+
+  // Content
+  const contentEl = document.querySelector('[data-product-detail="content"]');
+  if (contentEl) {
+    let html = skelBar("50%", "2rem", "1.5rem");
+    for (let i = 0; i < 5; i++) {
+      html += skelBar(i % 2 === 0 ? "100%" : "80%", "1rem");
+    }
+    html +=
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:2rem;">';
+    for (let i = 0; i < 4; i++) {
+      html +=
+        '<div style="padding:1.5rem;border:2px solid #e5e7eb;border-radius:12px;">' +
+        '<div style="width:56px;height:56px;' +
+        SKEL_STYLE +
+        'border-radius:12px;margin-bottom:1rem;"></div>' +
+        skelBar("65%", "1.125rem") +
+        skelBar("100%", "0.875rem") +
+        skelBar("75%", "0.875rem", "0") +
+        "</div>";
+    }
+    html += "</div>";
+    contentEl.innerHTML = html;
+  }
+
+  // Side nav skeleton
+  const navContainer = document.querySelector('[data-product-nav="container"]');
+  if (navContainer) {
+    let navHtml =
+      '<div style="padding:1.5rem;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">';
+    navHtml += skelBar("50%", "1rem", "1rem");
+    for (let i = 0; i < 6; i++) {
+      navHtml +=
+        '<div style="height:2rem;width:100%;' +
+        SKEL_STYLE +
+        'margin-bottom:0.5rem;border-radius:4px;"></div>';
+    }
+    navHtml += "</div>";
+    navContainer.innerHTML = navHtml;
   }
 }
 
-// Load Google Fonts
+function clearBreadcrumbSkel() {
+  const skel = document.getElementById("breadcrumb-skel");
+  if (skel) skel.remove();
+}
+
+// ── Google Fonts ──────────────────────────
 function loadGoogleFonts() {
   if (!document.querySelector("#google-fonts-link")) {
     const link = document.createElement("link");
@@ -47,40 +132,44 @@ function loadGoogleFonts() {
     link.href =
       "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap";
     document.head.appendChild(link);
-    console.log("✓ Google Fonts loaded");
   }
 }
 
-// Get slug from URL
 function getSlugFromURL() {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get("slug");
+  return new URLSearchParams(window.location.search).get("slug");
 }
 
-async function loadSideNavigation(currentSlug) {
-  try {
-    const response = await fetch(`${API_URL}/api/products/categories`);
-    const data = await response.json();
+// ── Side navigation ───────────────────────
+var navLoading = false;
 
-    if (data.success) {
-      displaySideNavigation(data.data, currentSlug);
-    }
+async function loadSideNavigation(currentSlug) {
+  if (navLoading) return;
+  navLoading = true;
+  try {
+    const response = await fetch(API_URL + "/api/products/categories");
+    const data = await response.json();
+    if (data.success) displaySideNavigation(data.data, currentSlug);
   } catch (error) {
     console.error("Error loading navigation:", error);
+  } finally {
+    navLoading = false;
   }
 }
 
 function displaySideNavigation(categories, currentSlug) {
-  let html = '<div class="side-nav">';
+  // Remove all existing mobile navs
+  document.querySelectorAll("#side-nav-mobile").forEach(function (el) {
+    el.remove();
+  });
 
+  let html = '<div class="side-nav">';
   Object.keys(categories)
     .sort()
-    .forEach((category, index) => {
-      const hasCurrentProduct = categories[category].some(
-        (p) => p.slug === currentSlug,
-      );
+    .forEach(function (category) {
+      const hasCurrentProduct = categories[category].some(function (p) {
+        return p.slug === currentSlug;
+      });
       const isExpanded = hasCurrentProduct;
-
       html += '<div class="side-nav-category">';
       html +=
         '<div class="side-nav-category-title ' +
@@ -90,8 +179,7 @@ function displaySideNavigation(categories, currentSlug) {
         "</div>";
       html +=
         '<div class="side-nav-items' + (isExpanded ? "" : " hidden") + '">';
-
-      categories[category].forEach((product) => {
+      categories[category].forEach(function (product) {
         const isActive = product.slug === currentSlug ? " active" : "";
         html +=
           '<a href="/product-detail?slug=' +
@@ -102,228 +190,146 @@ function displaySideNavigation(categories, currentSlug) {
           product.title +
           "</a>";
       });
-
-      html += "</div>";
-      html += "</div>";
+      html += "</div></div>";
     });
-
   html += "</div>";
 
+  // Desktop nav
   const navContainer = document.querySelector('[data-product-nav="container"]');
-  if (navContainer) {
-    navContainer.innerHTML = html;
+  if (navContainer) navContainer.innerHTML = html;
+
+  // Mobile nav — always inject, CSS controls visibility
+  const contentContainer = document.querySelector(
+    '[data-product-detail="content"]',
+  );
+  if (contentContainer && contentContainer.parentElement) {
+    const mobileNav = document.createElement("div");
+    mobileNav.id = "side-nav-mobile";
+    mobileNav.className = "side-nav-mobile-container";
+    mobileNav.innerHTML = html;
+    contentContainer.parentElement.appendChild(mobileNav);
   }
-
-  if (window.innerWidth <= 768) {
-    let mobileNavContainer = document.getElementById("side-nav-mobile");
-    if (!mobileNavContainer) {
-      mobileNavContainer = document.createElement("div");
-      mobileNavContainer.id = "side-nav-mobile";
-      mobileNavContainer.className = "side-nav-mobile-container";
-    }
-    mobileNavContainer.innerHTML = html;
-
-    // Place mobile nav at the very bottom of the page
-    const variantsTable = document.querySelector(
-      '[data-product-detail="variants-table"]',
-    );
-    const contentContainer = document.querySelector(
-      '[data-product-detail="content"]',
-    );
-
-    if (variantsTable && variantsTable.parentElement) {
-      // Insert after the variants table's parent to be at the bottom
-      variantsTable.after(mobileNavContainer);
-    } else if (contentContainer && contentContainer.parentElement) {
-      contentContainer.parentElement.appendChild(mobileNavContainer);
-    } else {
-      document.body.appendChild(mobileNavContainer);
-    }
-  }
-
-  console.log("✓ Navigation loaded");
 }
 
 function toggleCategory(element) {
   const items = element.nextElementSibling;
-  const isCurrentlyHidden = items.classList.contains("hidden");
-
-  // Auto-close all other categories first
-  const allTitles = document.querySelectorAll(".side-nav-category-title");
-  allTitles.forEach(function (title) {
-    const titleItems = title.nextElementSibling;
-    if (titleItems) {
-      titleItems.classList.add("hidden");
-      title.classList.remove("expanded");
-      title.classList.add("collapsed");
-    }
-  });
-
-  // If the clicked one was closed, open it
-  if (isCurrentlyHidden) {
+  const isHidden = items.classList.contains("hidden");
+  document
+    .querySelectorAll(".side-nav-category-title")
+    .forEach(function (title) {
+      const titleItems = title.nextElementSibling;
+      if (titleItems) {
+        titleItems.classList.add("hidden");
+        title.classList.remove("expanded");
+        title.classList.add("collapsed");
+      }
+    });
+  if (isHidden) {
     items.classList.remove("hidden");
     element.classList.remove("collapsed");
     element.classList.add("expanded");
   }
 }
 
-let resizeTimeout;
-window.addEventListener("resize", function () {
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(function () {
-    const slug = getSlugFromURL();
-    if (slug) {
-      loadSideNavigation(slug);
-    }
-  }, 250);
-});
-
+// ── Load product detail ───────────────────
 async function loadProductDetail() {
   const slug = getSlugFromURL();
-  console.log("=== LOADING PRODUCT ===");
-  console.log("Slug from URL:", slug);
-
   if (!slug) {
-    hideLoading();
     showError("No product specified");
     return;
   }
 
-  showLoading();
+  // Show skeleton immediately — no spinner
+  showSkeleton();
 
   try {
-    const apiUrl = `${API_URL}/api/products/${slug}`;
-    console.log("Fetching from:", apiUrl);
-
-    const response = await fetch(apiUrl);
+    const response = await fetch(API_URL + "/api/products/" + slug);
     const data = await response.json();
-
-    console.log("API Response:", data);
-
     if (data.success) {
       displayProductDetail(data.data);
       loadSideNavigation(slug);
-      setTimeout(hideLoading, 300);
     } else {
-      hideLoading();
       showError("Product not found");
     }
   } catch (error) {
     console.error("Error loading product:", error);
-    hideLoading();
     showError("Failed to load product");
   }
 }
 
 function displayProductDetail(product) {
-  console.log("=== DISPLAYING PRODUCT ===");
-  console.log("Product:", product.title);
-  console.log(
-    "Number of variants:",
-    product.variants ? product.variants.length : 0,
-  );
-  console.log("Price Type:", product.priceType);
-  console.log("Base Price:", product.basePrice);
-  console.log("Stripe Payment Link:", product.stripePaymentLink);
-
-  // Store Stripe Payment Link for checkout
   currentProductStripePaymentLink = product.stripePaymentLink || null;
-
-  // 🔥 DEBUG: Log all variants with their custom fields
-  if (product.variants && product.variants.length > 0) {
-    console.log("🔍 ALL VARIANTS:");
-    product.variants.forEach((v, i) => {
-      console.log(`  Variant ${i + 1}:`);
-      console.log("    modelNumber:", v.modelNumber);
-      console.log("    capacity:", v.capacity);
-      console.log("    customFields:", v.customFields);
-      console.log("    customFieldsJSON:", JSON.stringify(v.customFields));
-      console.log("    price:", v.price);
-      console.log("    ---");
-    });
-  }
-
   allVariants = product.variants || [];
-  // Separate enabled variants for configurator (disabled ones still in allVariants for table)
   const enabledVariants = allVariants.filter(function (v) {
     return v.enabled !== false;
   });
 
   document.title = product.title + " - Basepoint Engineering";
 
-  // Set meta description
   let metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
-    metaDesc = document.createElement('meta');
-    metaDesc.name = 'description';
+    metaDesc = document.createElement("meta");
+    metaDesc.name = "description";
     document.head.appendChild(metaDesc);
   }
-  metaDesc.content = product.excerpt
-    || (product.description
-      ? product.description.replace(/<[^>]*>/g, '').substring(0, 160).trim()
-      : '')
-    || product.title + ' — ' + (product.category || '') + ' | Basepoint Engineering below-the-hook lifting equipment.';
+  metaDesc.content =
+    product.excerpt ||
+    (product.description
+      ? product.description
+          .replace(/<[^>]*>/g, "")
+          .substring(0, 160)
+          .trim()
+      : "") ||
+    product.title +
+      " — " +
+      (product.category || "") +
+      " | Basepoint Engineering.";
 
-  // Update OG / Twitter tags for social sharing
-  setMetaTag('og:title', product.title + ' - Basepoint Engineering');
-  setMetaTag('twitter:title', product.title + ' - Basepoint Engineering');
-  setMetaTag('og:description', metaDesc.content);
-  setMetaTag('twitter:description', metaDesc.content);
-  setMetaTag('og:url', window.location.href);
-  setMetaTag('og:type', 'product');
-  if (product.imageUrl) setMetaTag('og:image', product.imageUrl);
-  if (product.imageUrl) setMetaTag('twitter:image', product.imageUrl);
+  setMetaTag("og:title", product.title + " - Basepoint Engineering");
+  setMetaTag("twitter:title", product.title + " - Basepoint Engineering");
+  setMetaTag("og:description", metaDesc.content);
+  setMetaTag("twitter:description", metaDesc.content);
+  setMetaTag("og:url", window.location.href);
+  setMetaTag("og:type", "product");
+  setMetaTag("twitter:card", "summary_large_image");
+  if (product.imageUrl) {
+    setMetaTag("og:image", product.imageUrl);
+    setMetaTag("twitter:image", product.imageUrl);
+  }
+
+  // Clear breadcrumb skeleton and inject real breadcrumb
+  clearBreadcrumbSkel();
+  injectBreadcrumb(product.title, product.category || null);
 
   const titleEl = document.querySelector('[data-product-detail="title"]');
   if (titleEl) {
     titleEl.textContent = product.title;
     titleEl.style.fontFamily = "'Montserrat', sans-serif";
     titleEl.style.fontWeight = "700";
-    console.log("✓ Title updated");
   }
 
   const categoryEl = document.querySelector('[data-product-detail="category"]');
   if (categoryEl && product.category) {
     categoryEl.textContent = product.category;
-    categoryEl.style.fontFamily = "'Open Sans', sans-serif";
-    categoryEl.style.display = "inline-block";
-    categoryEl.style.padding = "0.25rem 0.75rem";
-    categoryEl.style.background = "#e0f2fe";
-    categoryEl.style.color = "#0369a1";
-    categoryEl.style.borderRadius = "9999px";
-    categoryEl.style.fontSize = "0.875rem";
-    categoryEl.style.fontWeight = "500";
-    console.log("✓ Category updated");
+    categoryEl.style.cssText =
+      "font-family:'Open Sans',sans-serif;display:inline-block;padding:0.25rem 0.75rem;background:#e0f2fe;color:#0369a1;border-radius:9999px;font-size:0.875rem;font-weight:500;";
   }
-
-  // Breadcrumb injection
-  injectBreadcrumb(product.title, product.category || null);
 
   const imgEl = document.querySelector('[data-product-detail="image"]');
   if (imgEl && product.imageUrl) {
+    imgEl.style.cssText = "";
     imgEl.src = product.imageUrl + "?t=" + new Date().getTime();
     imgEl.alt = product.title;
     imgEl.style.height = "auto";
     imgEl.style.objectFit = "cover";
     imgEl.style.borderRadius = "8px";
-
-    if (window.innerWidth <= 768) {
-      // Mobile: near-full width with small side margins
-      imgEl.style.width = "calc(100% - 1.5rem)";
-      imgEl.style.maxWidth = "calc(100% - 1.5rem)";
-      imgEl.style.display = "block";
-      imgEl.style.margin = "1rem auto";
-    } else {
-      imgEl.style.width = "100%";
-    }
-    console.log("✓ Image updated");
+    imgEl.style.width =
+      window.innerWidth <= 768 ? "calc(100% - 1.5rem)" : "100%";
   }
 
   if (enabledVariants.length > 0) {
-    console.log("✓ Displaying configurator with variants");
     displayProductConfigurator(enabledVariants, product);
   } else if (product.basePrice) {
-    console.log("✓ Displaying simple price (no variants)");
     displaySimplePriceBox(product);
   }
 
@@ -331,200 +337,162 @@ function displayProductDetail(product) {
   if (contentEl) {
     if (product.contentBlocks && Array.isArray(product.contentBlocks)) {
       contentEl.innerHTML = renderProductContentBlocks(product.contentBlocks);
-      console.log("✓ Content blocks rendered");
     } else if (product.description) {
       contentEl.innerHTML =
-        "<p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">" +
+        "<p style=\"font-family:'Open Sans',sans-serif;line-height:1.8;\">" +
         product.description
           .replace(
             /\n\n/g,
-            "</p><p style=\"font-family: 'Open Sans', sans-serif; line-height: 1.8;\">",
+            "</p><p style=\"font-family:'Open Sans',sans-serif;line-height:1.8;\">",
           )
           .replace(/\n/g, "<br>") +
         "</p>";
-      console.log("✓ Description rendered");
     }
   }
 
-  if (product.showVariantsTable && allVariants.length > 0) {
-    console.log("✓ Displaying variants table");
+  if (product.showVariantsTable && allVariants.length > 0)
     displayVariants(allVariants);
-  }
-
-  console.log("=== PRODUCT DISPLAY COMPLETE ===");
 }
 
+// ── Breadcrumb ────────────────────────────
+function injectBreadcrumb(productTitle, category) {
+  var existing = document.querySelector(".bp-breadcrumb");
+  if (existing) existing.remove();
+
+  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
+  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  if (category) {
+    breadcrumbHTML +=
+      '<a href="https://basepointengineering.com/products?category=' +
+      encodeURIComponent(category) +
+      '">' +
+      category +
+      "</a>";
+  } else {
+    breadcrumbHTML +=
+      '<a href="https://basepointengineering.com/products">Products</a>';
+  }
+  breadcrumbHTML += '<span class="bp-separator">›</span>';
+  breadcrumbHTML += '<span class="bp-current">' + productTitle + "</span>";
+  breadcrumbHTML += "</nav>";
+
+  var target = document.querySelector('[data-product-detail="content"]');
+  if (target && target.parentElement) {
+    var div = document.createElement("div");
+    div.innerHTML = breadcrumbHTML;
+    target.parentElement.insertBefore(div.firstChild, target);
+  }
+
+  var existing2 = document.getElementById("bp-breadcrumb-schema");
+  if (existing2) existing2.remove();
+
+  var slug = getSlugFromURL();
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://basepointengineering.com",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: category || "Products",
+        item: category
+          ? "https://basepointengineering.com/products?category=" +
+            encodeURIComponent(category)
+          : "https://basepointengineering.com/products",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: productTitle,
+        item:
+          "https://basepointengineering.com/product-detail?slug=" +
+          encodeURIComponent(slug || ""),
+      },
+    ],
+  };
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-breadcrumb-schema";
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+}
+
+// ── Simple price box ──────────────────────
 function displaySimplePriceBox(product) {
   let html = '<div class="product-configurator">';
   html += '<h3 class="configurator-title">💰 Product Pricing</h3>';
-  html += '<div class="variant-price-info" style="display: block;">';
-  html += '<div class="price-label">Price:</div>';
   html +=
-    '<div class="price-amount">CA$' + product.basePrice.toFixed(2) + "</div>";
-  html += "</div>";
+    '<div class="variant-price-info" style="display:block;"><div class="price-label">Price:</div><div class="price-amount">CA$' +
+    product.basePrice.toFixed(2) +
+    "</div></div>";
   html +=
     '<button class="configurator-cta" onclick="handleSimplePurchase(\'' +
     product.title.replace(/'/g, "\\'") +
-    "', " +
+    "'," +
     product.basePrice +
-    ')">';
-  html += "🛒 Purchase Now";
-  html += "</button>";
-  html += '<div class="configurator-help">';
+    ')">🛒 Purchase Now</button>';
   html +=
-    'Need help? <a href="/contact" style="color: #3b82f6; text-decoration: underline;">Contact our team</a>';
+    '<div class="configurator-help">Need help? <a href="/contact" style="color:#3b82f6;text-decoration:underline;">Contact our team</a></div>';
   html += "</div>";
-  html += "</div>";
-
   const imgEl = document.querySelector('[data-product-detail="image"]');
-  if (imgEl && imgEl.parentElement) {
+  if (imgEl && imgEl.parentElement)
     imgEl.parentElement.insertAdjacentHTML("afterend", html);
-  } else {
-    const contentEl = document.querySelector('[data-product-detail="content"]');
-    if (contentEl) {
-      contentEl.insertAdjacentHTML("beforebegin", html);
-    }
-  }
-
-  console.log("✓ Simple price box displayed");
 }
 
 async function handleSimplePurchase(productTitle, price) {
-  console.log("Initiating simple purchase:", productTitle, "Price:", price);
-
-  const buttons = document.querySelectorAll(".configurator-cta");
-  let purchaseBtn = null;
-  buttons.forEach((btn) => {
-    if (btn.onclick && btn.onclick.toString().includes(productTitle)) {
-      purchaseBtn = btn;
-    }
-  });
-
-  if (purchaseBtn) {
-    const originalText = purchaseBtn.innerHTML;
-    purchaseBtn.disabled = true;
-    purchaseBtn.innerHTML = "⏳ Processing...";
-  }
-
-  // Check if Stripe is configured - use Stripe Checkout API
   if (currentProductStripePaymentLink) {
-    console.log("✓ Using Stripe Checkout API for simple product");
-
     try {
-      const response = await fetch(`${API_URL}/api/checkout/stripe`, {
+      const response = await fetch(API_URL + "/api/checkout/stripe", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productSlug: getSlugFromURL(),
-          customData: {
-            product_title: productTitle,
-            product_type: "simple",
-          },
+          customData: { product_title: productTitle, product_type: "simple" },
         }),
       });
-
       const data = await response.json();
-
-      if (data.success && data.checkoutUrl) {
-        console.log("✓ Stripe Checkout URL received:", data.checkoutUrl);
-
-        const checkoutWindow = window.open(data.checkoutUrl, "_blank");
-
-        if (
-          !checkoutWindow ||
-          checkoutWindow.closed ||
-          typeof checkoutWindow.closed === "undefined"
-        ) {
-          alert(
-            "Popup blocked! Please allow popups for this site and try again.",
-          );
-        }
-      } else {
-        console.error("Stripe Checkout failed:", data);
+      if (data.success && data.checkoutUrl)
+        window.open(data.checkoutUrl, "_blank");
+      else
         alert(
           "Failed to create checkout: " + (data.error || "Please try again."),
         );
-      }
-
-      if (purchaseBtn) {
-        purchaseBtn.disabled = false;
-        purchaseBtn.innerHTML = originalText;
-      }
-      return;
     } catch (error) {
-      console.error("Stripe Checkout error:", error);
       alert("An error occurred. Please try again.");
-      if (purchaseBtn) {
-        purchaseBtn.disabled = false;
-        purchaseBtn.innerHTML = originalText;
-      }
-      return;
     }
+    return;
   }
-
-  // Fallback to Lemon Squeezy checkout
   try {
-    const response = await fetch(`${API_URL}/api/checkout/lemon-squeezy`, {
+    const response = await fetch(API_URL + "/api/checkout/lemon-squeezy", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         productName: productTitle,
         price: price,
-        customData: {
-          product_title: productTitle,
-          product_type: "simple",
-        },
+        customData: { product_title: productTitle, product_type: "simple" },
       }),
     });
-
     const data = await response.json();
-
-    if (data.success && data.checkoutUrl) {
-      console.log("✓ Checkout URL received:", data.checkoutUrl);
-
-      const checkoutWindow = window.open(data.checkoutUrl, "_blank");
-
-      if (
-        !checkoutWindow ||
-        checkoutWindow.closed ||
-        typeof checkoutWindow.closed === "undefined"
-      ) {
-        alert(
-          "Popup blocked! Please allow popups for this site and try again.",
-        );
-      }
-
-      if (purchaseBtn) {
-        purchaseBtn.disabled = false;
-        purchaseBtn.innerHTML = originalText;
-      }
-    } else {
-      console.error("Checkout failed:", data);
+    if (data.success && data.checkoutUrl)
+      window.open(data.checkoutUrl, "_blank");
+    else
       alert(
         "Failed to create checkout: " + (data.error || "Please try again."),
       );
-      if (purchaseBtn) {
-        purchaseBtn.disabled = false;
-        purchaseBtn.innerHTML = originalText;
-      }
-    }
   } catch (error) {
-    console.error("Purchase error:", error);
     alert("An error occurred. Please try again.");
-    if (purchaseBtn) {
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-    }
   }
 }
 
-// 🆕 UPDATED: Configurator with Custom Fields Support
+// ── Configurator ──────────────────────────
 function displayProductConfigurator(variants, product) {
-  // 🔥 FIX: Filter out null/undefined/empty values
   const capacities = [
     ...new Set(variants.map((v) => v.capacity).filter(Boolean)),
   ].sort();
@@ -534,146 +502,90 @@ function displayProductConfigurator(variants, product) {
   const endConnections = [
     ...new Set(variants.map((v) => v.endConnection).filter(Boolean)),
   ].sort();
-
-  // 🆕 Extract custom fields from all variants
   const customFieldsMap = new Map();
   variants.forEach((variant) => {
     if (variant.customFields) {
       Object.entries(variant.customFields).forEach(([fieldName, value]) => {
-        // 🔥 FIX: Only add non-empty values
         if (value && value !== "null" && value !== "undefined") {
-          if (!customFieldsMap.has(fieldName)) {
+          if (!customFieldsMap.has(fieldName))
             customFieldsMap.set(fieldName, new Set());
-          }
           customFieldsMap.get(fieldName).add(value);
         }
       });
     }
   });
 
-  console.log("🔧 Custom fields detected:", Array.from(customFieldsMap.keys()));
-  console.log("🔧 Capacities:", capacities);
-  console.log("🔧 Lengths:", lengths);
-  console.log("🔧 Connections:", endConnections);
-
-  let html = '<div class="product-configurator">';
-  html +=
-    '<h3 class="configurator-title">🛠️ Let\'s Customize Your Product</h3>';
-
-  html += '<div class="configurator-options">';
-
-  // Track which standard fields actually have values
   const hasStandardCapacity = capacities.length > 0;
   const hasStandardLength = lengths.length > 0;
   const hasStandardConnection = endConnections.length > 0;
 
+  let html =
+    '<div class="product-configurator"><h3 class="configurator-title">🛠️ Let\'s Customize Your Product</h3><div class="configurator-options">';
+
   if (hasStandardCapacity) {
-    html += '<div class="configurator-option">';
-    html += '<label class="configurator-label">Capacity *</label>';
     html +=
-      '<select id="capacity-select" class="configurator-select" onchange="updateConfiguration()">';
-    html += '<option value="">Select capacity...</option>';
-    capacities.forEach(function (capacity) {
-      html += '<option value="' + capacity + '">' + capacity + "</option>";
+      '<div class="configurator-option"><label class="configurator-label">Capacity *</label><select id="capacity-select" class="configurator-select" onchange="updateConfiguration()"><option value="">Select capacity...</option>';
+    capacities.forEach((c) => {
+      html += '<option value="' + c + '">' + c + "</option>";
     });
-    html += "</select>";
-    html += "</div>";
+    html += "</select></div>";
   }
-
   if (hasStandardLength) {
-    html += '<div class="configurator-option">';
-    html += '<label class="configurator-label">Length *</label>';
     html +=
-      '<select id="length-select" class="configurator-select" onchange="updateConfiguration()" disabled>';
-    html += '<option value="">Select length...</option>';
-    html += "</select>";
-    html += "</div>";
+      '<div class="configurator-option"><label class="configurator-label">Length *</label><select id="length-select" class="configurator-select" onchange="updateConfiguration()" disabled><option value="">Select length...</option></select></div>';
   }
-
   if (hasStandardConnection) {
-    html += '<div class="configurator-option">';
-    html += '<label class="configurator-label">End Connection *</label>';
     html +=
-      '<select id="connection-select" class="configurator-select" onchange="updateConfiguration()" disabled>';
-    html += '<option value="">Select end connection...</option>';
-    html += "</select>";
-    html += "</div>";
+      '<div class="configurator-option"><label class="configurator-label">End Connection *</label><select id="connection-select" class="configurator-select" onchange="updateConfiguration()" disabled><option value="">Select end connection...</option></select></div>';
   }
 
-  // 🆕 Add custom field dropdowns (only skip if standard field exists WITH values)
   customFieldsMap.forEach((values, fieldName) => {
-    const normalizedFieldName = fieldName.toLowerCase().replace(/\s+/g, "");
-
-    // 🔥 FIX: Only skip if standard field actually has values
+    const n = fieldName.toLowerCase().replace(/\s+/g, "");
     if (
-      (normalizedFieldName === "capacity" && hasStandardCapacity) ||
-      (normalizedFieldName === "length" && hasStandardLength) ||
-      (normalizedFieldName === "endconnection" && hasStandardConnection) ||
-      (normalizedFieldName === "connection" && hasStandardConnection) ||
-      (normalizedFieldName === "connectiontype" && hasStandardConnection)
-    ) {
-      console.log("⚠ Skipping duplicate field (standard exists):", fieldName);
+      (n === "capacity" && hasStandardCapacity) ||
+      (n === "length" && hasStandardLength) ||
+      ((n === "endconnection" ||
+        n === "connection" ||
+        n === "connectiontype") &&
+        hasStandardConnection)
+    )
       return;
-    }
-
     const fieldId = "custom-" + fieldName.replace(/\s+/g, "-").toLowerCase();
-    html += '<div class="configurator-option">';
-    html += '<label class="configurator-label">' + fieldName + " *</label>";
     html +=
-      '<select id="' +
+      '<div class="configurator-option"><label class="configurator-label">' +
+      fieldName +
+      ' *</label><select id="' +
       fieldId +
       '" class="configurator-select" data-custom-field="' +
       fieldName +
-      '" onchange="updateConfiguration()">';
-    html +=
-      '<option value="">Select ' + fieldName.toLowerCase() + "...</option>";
+      '" onchange="updateConfiguration()"><option value="">Select ' +
+      fieldName.toLowerCase() +
+      "...</option>";
     Array.from(values)
       .sort()
-      .forEach(function (value) {
-        html += '<option value="' + value + '">' + value + "</option>";
+      .forEach((v) => {
+        html += '<option value="' + v + '">' + v + "</option>";
       });
-    html += "</select>";
-    html += "</div>";
+    html += "</select></div>";
   });
 
   html += "</div>";
-
   html +=
-    '<div id="selected-variant-info" style="display: none;" class="selected-variant-info">';
-  html += '<div class="selected-variant-label">Selected Model:</div>';
+    '<div id="selected-variant-info" style="display:none;" class="selected-variant-info"><div class="selected-variant-label">Selected Model:</div><div class="selected-variant-model" id="selected-model-number">-</div></div>';
   html +=
-    '<div class="selected-variant-model" id="selected-model-number">-</div>';
-  html += "</div>";
-
+    '<div id="variant-price-display" style="display:none;" class="variant-price-info"><div class="price-label">Price:</div><div class="price-amount" id="price-amount">-</div></div>';
   html +=
-    '<div id="variant-price-display" style="display: none;" class="variant-price-info">';
-  html += '<div class="price-label">Price:</div>';
-  html += '<div class="price-amount" id="price-amount">-</div>';
-  html += "</div>";
-
+    '<button id="purchase-btn" class="configurator-cta" onclick="handlePurchase()" disabled>🛒 Purchase Now</button>';
   html +=
-    '<button id="purchase-btn" class="configurator-cta" onclick="handlePurchase()" disabled>';
-  html += "🛒 Purchase Now";
-  html += "</button>";
-
-  html += '<div class="configurator-help">';
-  html +=
-    'Need help? <a href="/contact" style="color: #3b82f6; text-decoration: underline;">Contact our team</a>';
-  html += "</div>";
-
-  html += "</div>";
+    '<div class="configurator-help">Need help? <a href="/contact" style="color:#3b82f6;text-decoration:underline;">Contact our team</a></div></div>';
 
   const imgEl = document.querySelector('[data-product-detail="image"]');
-  if (imgEl && imgEl.parentElement) {
+  if (imgEl && imgEl.parentElement)
     imgEl.parentElement.insertAdjacentHTML("afterend", html);
-  } else {
+  else {
     const contentEl = document.querySelector('[data-product-detail="content"]');
-    if (contentEl) {
-      contentEl.insertAdjacentHTML("beforebegin", html);
-    }
+    if (contentEl) contentEl.insertAdjacentHTML("beforebegin", html);
   }
-
-  console.log("✓ Configurator displayed with custom fields");
 
   setTimeout(function () {
     if (capacities.length === 1) {
@@ -684,87 +596,63 @@ function displayProductConfigurator(variants, product) {
 }
 
 function updateConfiguration() {
-  console.log("🔄 updateConfiguration called");
-
   const capacitySelect = document.getElementById("capacity-select");
   const lengthSelect = document.getElementById("length-select");
   const connectionSelect = document.getElementById("connection-select");
-
-  // 🔥 FIX: If no standard fields exist, just call findSelectedVariant directly
   if (!capacitySelect && !lengthSelect && !connectionSelect) {
-    console.log("✓ No standard fields, using custom fields only");
     findSelectedVariant();
     return;
   }
-
   if (!capacitySelect) return;
-
   const selectedCapacity = capacitySelect.value;
   let filteredVariants = allVariants.filter(
     (v) => v.capacity === selectedCapacity,
   );
-
   if (lengthSelect) {
     const currentLengthValue = lengthSelect.value;
     const availableLengths = [
       ...new Set(filteredVariants.map((v) => v.length).filter(Boolean)),
     ].sort();
-
     lengthSelect.innerHTML = '<option value="">Select length...</option>';
-    availableLengths.forEach(function (length) {
-      lengthSelect.innerHTML +=
-        '<option value="' + length + '">' + length + "</option>";
+    availableLengths.forEach((l) => {
+      lengthSelect.innerHTML += '<option value="' + l + '">' + l + "</option>";
     });
-
     lengthSelect.disabled = !selectedCapacity || availableLengths.length === 0;
-
-    if (availableLengths.length === 1) {
-      lengthSelect.value = availableLengths[0];
-    } else if (
+    if (availableLengths.length === 1) lengthSelect.value = availableLengths[0];
+    else if (
       currentLengthValue &&
       availableLengths.includes(currentLengthValue)
-    ) {
+    )
       lengthSelect.value = currentLengthValue;
-    }
-
-    const selectedLength = lengthSelect.value;
-    if (selectedLength) {
+    if (lengthSelect.value)
       filteredVariants = filteredVariants.filter(
-        (v) => v.length === selectedLength,
+        (v) => v.length === lengthSelect.value,
       );
-    }
   }
-
   if (connectionSelect) {
     const currentConnectionValue = connectionSelect.value;
     const availableConnections = [
       ...new Set(filteredVariants.map((v) => v.endConnection).filter(Boolean)),
     ].sort();
-
     connectionSelect.innerHTML =
       '<option value="">Select end connection...</option>';
-    availableConnections.forEach(function (connection) {
+    availableConnections.forEach((c) => {
       connectionSelect.innerHTML +=
-        '<option value="' + connection + '">' + connection + "</option>";
+        '<option value="' + c + '">' + c + "</option>";
     });
-
     connectionSelect.disabled =
       !selectedCapacity || availableConnections.length === 0;
-
-    if (availableConnections.length === 1) {
+    if (availableConnections.length === 1)
       connectionSelect.value = availableConnections[0];
-    } else if (
+    else if (
       currentConnectionValue &&
       availableConnections.includes(currentConnectionValue)
-    ) {
+    )
       connectionSelect.value = currentConnectionValue;
-    }
   }
-
   findSelectedVariant();
 }
 
-// 🆕 UPDATED: Find variant with custom fields support
 function findSelectedVariant() {
   const capacitySelect = document.getElementById("capacity-select");
   const lengthSelect = document.getElementById("length-select");
@@ -774,143 +662,64 @@ function findSelectedVariant() {
   const modelNumber = document.getElementById("selected-model-number");
   const priceDisplay = document.getElementById("variant-price-display");
   const priceAmount = document.getElementById("price-amount");
-
-  // Get standard field values (if they exist)
   const capacity = capacitySelect ? capacitySelect.value : null;
   const length = lengthSelect ? lengthSelect.value : null;
   const connection = connectionSelect ? connectionSelect.value : null;
-
-  // 🆕 Get custom field selections
   const customFieldSelects = document.querySelectorAll("[data-custom-field]");
   const customFieldSelections = {};
   let allCustomFieldsSelected = true;
-
   customFieldSelects.forEach((select) => {
     const fieldName = select.getAttribute("data-custom-field");
-    const value = select.value;
-    if (value) {
-      customFieldSelections[fieldName] = value;
-    } else {
-      allCustomFieldsSelected = false;
-    }
+    if (select.value) customFieldSelections[fieldName] = select.value;
+    else allCustomFieldsSelected = false;
   });
-
-  console.log("🔍 Finding variant with:", {
-    capacity,
-    length,
-    connection,
-    customFields: customFieldSelections,
-    allCustomFieldsSelected,
-  });
-
   const hasStandardCapacity = capacitySelect && !capacitySelect.disabled;
   const hasStandardLength = lengthSelect && !lengthSelect.disabled;
   const hasStandardConnection = connectionSelect && !connectionSelect.disabled;
   const hasCustomFields = customFieldSelects.length > 0;
-
-  // 🔥 FIX: Check if all required fields are selected
   const allRequiredSelected =
     (!hasStandardCapacity || capacity) &&
     (!hasStandardLength || length) &&
     (!hasStandardConnection || connection) &&
     (!hasCustomFields || allCustomFieldsSelected);
-
-  console.log("✓ All required selected?", allRequiredSelected);
-
   if (!allRequiredSelected) {
     variantInfo.style.display = "none";
     priceDisplay.style.display = "none";
     purchaseBtn.disabled = true;
     return;
   }
-
-  // Find variant matching all criteria — skip disabled variants
   selectedVariant = allVariants.find((v) => {
     if (v.enabled === false) return false;
-    console.log("🔍 Checking variant:", v.modelNumber);
-    console.log("  - Variant data:", v);
-
     const matchCapacity = !hasStandardCapacity || v.capacity === capacity;
     const matchLength = !hasStandardLength || v.length === length;
     const matchConnection =
       !hasStandardConnection || v.endConnection === connection;
-
-    console.log("  - Standard field matches:", {
-      matchCapacity,
-      matchLength,
-      matchConnection,
-    });
-
-    // 🆕 Check custom fields match
     let matchCustomFields = true;
     if (hasCustomFields) {
-      console.log("  - Has custom fields to check");
-      console.log("  - Variant customFields:", v.customFields);
-      console.log("  - Looking for:", customFieldSelections);
-
-      if (!v.customFields) {
-        console.log("  - ❌ Variant has no customFields object");
-        matchCustomFields = false;
-      } else {
+      if (!v.customFields) matchCustomFields = false;
+      else
         Object.entries(customFieldSelections).forEach(([fieldName, value]) => {
-          const variantValue = v.customFields[fieldName];
-          const matches = variantValue === value;
-          console.log(
-            `  - Custom field "${fieldName}": variant="${variantValue}", looking for="${value}", matches=${matches}`,
-          );
-          if (!matches) {
-            matchCustomFields = false;
-          }
+          if (v.customFields[fieldName] !== value) matchCustomFields = false;
         });
-      }
     }
-
-    console.log("  - matchCustomFields:", matchCustomFields);
-
-    const matches =
-      matchCapacity && matchLength && matchConnection && matchCustomFields;
-
-    console.log("  - FINAL MATCH:", matches);
-
-    if (matches) {
-      console.log("✅ FOUND MATCHING VARIANT:", v.modelNumber, v);
-    }
-
-    return matches;
+    return matchCapacity && matchLength && matchConnection && matchCustomFields;
   });
-
-  console.log("Selected variant:", selectedVariant);
-
-  // Remove existing preview button if any
   var existingPreviewBtn = document.getElementById("preview-btn");
   if (existingPreviewBtn) existingPreviewBtn.remove();
-
   var priceLabel = priceDisplay.querySelector(".price-label");
-
   if (selectedVariant) {
     variantInfo.style.display = "block";
     modelNumber.textContent =
       selectedVariant.modelNumber || "Model: " + selectedVariant.capacity;
-
-    // Restore normal price label visibility
     if (priceLabel) priceLabel.style.display = "";
     priceAmount.removeAttribute("style");
-
     if (selectedVariant.price !== null && selectedVariant.price !== undefined) {
       priceDisplay.style.display = "block";
       priceAmount.textContent = "CA$" + selectedVariant.price.toFixed(2);
-    } else {
-      priceDisplay.style.display = "none";
-    }
-
+    } else priceDisplay.style.display = "none";
     purchaseBtn.disabled = false;
-
-    // Auto-show preview modal if variant has a preview link
-    if (selectedVariant.previewFileLink) {
-      showPreviewClaimModal(selectedVariant);
-    }
+    if (selectedVariant.previewFileLink) showPreviewClaimModal(selectedVariant);
   } else if (allRequiredSelected) {
-    // All dropdowns filled but matching variant is disabled — show "Not Available"
     variantInfo.style.display = "none";
     if (priceLabel) priceLabel.style.display = "none";
     priceDisplay.style.display = "block";
@@ -932,27 +741,15 @@ async function handlePurchase() {
     alert("Please select all options first");
     return;
   }
-
-  console.log("Initiating purchase for variant:", selectedVariant);
-
   const purchaseBtn = document.getElementById("purchase-btn");
   const originalText = purchaseBtn.innerHTML;
   purchaseBtn.disabled = true;
   purchaseBtn.innerHTML = "⏳ Processing...";
-
-  // Check if Stripe is configured - use Stripe Checkout API
   if (currentProductStripePaymentLink) {
-    console.log(
-      "✓ Using Stripe Checkout API for variant:",
-      selectedVariant.modelNumber,
-    );
-
     try {
-      const response = await fetch(`${API_URL}/api/checkout/stripe`, {
+      const response = await fetch(API_URL + "/api/checkout/stripe", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           variantId: selectedVariant.id,
           productSlug: getSlugFromURL(),
@@ -966,49 +763,24 @@ async function handlePurchase() {
           },
         }),
       });
-
       const data = await response.json();
-
-      if (data.success && data.checkoutUrl) {
-        console.log("✓ Stripe Checkout URL received:", data.checkoutUrl);
-
-        const checkoutWindow = window.open(data.checkoutUrl, "_blank");
-
-        if (
-          !checkoutWindow ||
-          checkoutWindow.closed ||
-          typeof checkoutWindow.closed === "undefined"
-        ) {
-          alert(
-            "Popup blocked! Please allow popups for this site and try again.",
-          );
-        }
-      } else {
-        console.error("Stripe Checkout failed:", data);
+      if (data.success && data.checkoutUrl)
+        window.open(data.checkoutUrl, "_blank");
+      else
         alert(
           "Failed to create checkout: " + (data.error || "Please try again."),
         );
-      }
-
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-      return;
     } catch (error) {
-      console.error("Stripe Checkout error:", error);
       alert("An error occurred. Please try again.");
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-      return;
     }
+    purchaseBtn.disabled = false;
+    purchaseBtn.innerHTML = originalText;
+    return;
   }
-
-  // Fallback to Lemon Squeezy checkout
   try {
-    const response = await fetch(`${API_URL}/api/checkout/lemon-squeezy`, {
+    const response = await fetch(API_URL + "/api/checkout/lemon-squeezy", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         variantId: selectedVariant.id,
         productSlug: getSlugFromURL(),
@@ -1022,40 +794,18 @@ async function handlePurchase() {
         },
       }),
     });
-
     const data = await response.json();
-
-    if (data.success && data.checkoutUrl) {
-      console.log("✓ Checkout URL received:", data.checkoutUrl);
-
-      const checkoutWindow = window.open(data.checkoutUrl, "_blank");
-
-      if (
-        !checkoutWindow ||
-        checkoutWindow.closed ||
-        typeof checkoutWindow.closed === "undefined"
-      ) {
-        alert(
-          "Popup blocked! Please allow popups for this site and try again.",
-        );
-      }
-
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-    } else {
-      console.error("Checkout failed:", data);
+    if (data.success && data.checkoutUrl)
+      window.open(data.checkoutUrl, "_blank");
+    else
       alert(
         "Failed to create checkout: " + (data.error || "Please try again."),
       );
-      purchaseBtn.disabled = false;
-      purchaseBtn.innerHTML = originalText;
-    }
   } catch (error) {
-    console.error("Purchase error:", error);
     alert("An error occurred. Please try again.");
-    purchaseBtn.disabled = false;
-    purchaseBtn.innerHTML = originalText;
   }
+  purchaseBtn.disabled = false;
+  purchaseBtn.innerHTML = originalText;
 }
 
 function renderProductContentBlocks(blocks) {
@@ -1064,178 +814,124 @@ function renderProductContentBlocks(blocks) {
       const marginTop = block.marginTop || 0;
       const marginBottom = block.marginBottom || 20;
       const baseStyle =
-        "margin-top: " +
-        marginTop +
-        "px; margin-bottom: " +
-        marginBottom +
-        "px;";
-
+        "margin-top:" + marginTop + "px;margin-bottom:" + marginBottom + "px;";
       switch (block.type) {
         case "heading":
           const level = block.level || 2;
-          const headingStyle =
-            baseStyle +
-            " font-family: 'Montserrat', sans-serif; font-weight: " +
-            (level === 1 ? "700" : level === 2 ? "600" : "500") +
-            "; line-height: 1.3;";
           return (
             "<h" +
             level +
             ' style="' +
-            headingStyle +
+            baseStyle +
+            "font-family:'Montserrat',sans-serif;font-weight:" +
+            (level === 1 ? "700" : level === 2 ? "600" : "500") +
+            ";line-height:1.3;" +
             '">' +
             block.content +
             "</h" +
             level +
             ">"
           );
-
         case "paragraph":
-          const paragraphStyle =
-            baseStyle +
-            " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem;";
-          var paragraphContent = block.content.replace(
-            /<a /gi,
-            '<a target="_blank" rel="noopener noreferrer" ',
-          );
           return (
-            '<p style="' + paragraphStyle + '">' + paragraphContent + "</p>"
+            '<p style="' +
+            baseStyle +
+            "font-family:'Open Sans',sans-serif;line-height:1.8;font-size:1rem;" +
+            '">' +
+            block.content.replace(
+              /<a /gi,
+              '<a target="_blank" rel="noopener noreferrer" ',
+            ) +
+            "</p>"
           );
-
         case "list":
           const listTag = block.listType === "numbered" ? "ol" : "ul";
           const listStyle =
             baseStyle +
-            " font-family: 'Open Sans', sans-serif; line-height: 1.8; font-size: 1rem; " +
+            "font-family:'Open Sans',sans-serif;line-height:1.8;font-size:1rem;" +
             (block.listType === "numbered"
-              ? "list-style-type: decimal; padding-left: 2rem;"
-              : "list-style-type: disc; padding-left: 2rem;");
-          const items = block.listItems || [];
-          const itemsHtml = items
-            .map(function (item) {
-              return '<li style="margin-bottom: 0.5rem;">' + item + "</li>";
-            })
-            .join("");
+              ? "list-style-type:decimal;padding-left:2rem;"
+              : "list-style-type:disc;padding-left:2rem;");
           return (
             "<" +
             listTag +
             ' style="' +
             listStyle +
             '">' +
-            itemsHtml +
+            (block.listItems || [])
+              .map((i) => '<li style="margin-bottom:0.5rem;">' + i + "</li>")
+              .join("") +
             "</" +
             listTag +
             ">"
           );
-
         case "specifications":
-          const specs = block.specs || [];
-          const specsHtml = specs
-            .map(function (spec) {
-              return (
-                '<div style="display: flex; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">' +
-                "<div style=\"flex: 1; font-weight: 600; font-family: 'Montserrat', sans-serif; color: #374151;\">" +
-                spec.label +
-                ":</div>" +
-                "<div style=\"flex: 1; font-family: 'Open Sans', sans-serif; color: #6b7280;\">" +
-                spec.value +
-                "</div>" +
-                "</div>"
-              );
-            })
-            .join("");
           return (
             '<div style="' +
             baseStyle +
-            ' background: #f9fafb; padding: 1.5rem; border-radius: 8px;">' +
-            specsHtml +
+            'background:#f9fafb;padding:1.5rem;border-radius:8px;">' +
+            (block.specs || [])
+              .map(
+                (s) =>
+                  '<div style="display:flex;padding:0.75rem 0;border-bottom:1px solid #e5e7eb;"><div style="flex:1;font-weight:600;font-family:\'Montserrat\',sans-serif;color:#374151;">' +
+                  s.label +
+                  ":</div><div style=\"flex:1;font-family:'Open Sans',sans-serif;color:#6b7280;\">" +
+                  s.value +
+                  "</div></div>",
+              )
+              .join("") +
             "</div>"
           );
-
         case "image":
-          const imageStyle =
-            baseStyle +
-            " width: 400px; height: 400px; object-fit: contain; display: block; border-radius: 8px; background: #f9fafb;";
           return (
-            '<div style="display: flex; justify-content: center; margin: 1rem 0;">' +
-            '<img src="' +
+            '<div style="display:flex;justify-content:center;margin:1rem 0;"><img src="' +
             block.content +
             '" alt="' +
             (block.alt || "") +
             '" style="' +
-            imageStyle +
-            '" />' +
-            "</div>"
-          );
-        case "quote-form":
-          return (
-            '<div style="' +
             baseStyle +
-            ' background: #fef3c7; padding: 2rem; border-radius: 8px; border: 2px solid #fbbf24;">' +
-            "<h3 style=\"font-family: 'Montserrat', sans-serif; font-weight: 600; margin-bottom: 1rem; color: #92400e;\">" +
-            (block.content || "Request a Quote") +
-            "</h3>" +
-            "<p style=\"font-family: 'Open Sans', sans-serif; color: #78350f; margin-bottom: 1rem;\">Contact us for pricing and availability.</p>" +
-            '<a href="/contact" style="display: inline-block; padding: 0.75rem 1.5rem; background: #f59e0b; color: white; text-decoration: none; border-radius: 4px; font-family: \'Montserrat\', sans-serif; font-weight: 500;">Get Quote</a>' +
-            "</div>"
+            'width:400px;height:400px;object-fit:contain;display:block;border-radius:8px;background:#f9fafb;" /></div>'
           );
-
         case "divider":
           return (
             '<hr style="' +
             baseStyle +
-            ' border: 0; border-top: 2px solid #e5e7eb;" />'
+            'border:0;border-top:2px solid #e5e7eb;" />'
           );
-
         case "columnList":
           const columns = block.columns || [];
-          if (columns.length === 0) return "";
-
-          const columnCount = columns.length;
-          let gridColumns = "";
-          if (columnCount === 1) gridColumns = "1fr";
-          else if (columnCount === 2) gridColumns = "1fr 1fr";
-          else if (columnCount === 3) gridColumns = "1fr 1fr 1fr";
-          else if (columnCount === 4) gridColumns = "1fr 1fr 1fr 1fr";
-          else gridColumns = "repeat(" + columnCount + ", 1fr)";
-
-          let columnsHtml =
+          if (!columns.length) return "";
+          const gridCols = ["1fr", "1fr 1fr", "1fr 1fr 1fr", "1fr 1fr 1fr 1fr"][
+            Math.min(columns.length - 1, 3)
+          ];
+          let colHtml =
             '<div style="' +
             baseStyle +
-            " display: grid; grid-template-columns: " +
-            gridColumns +
-            '; gap: 2rem; margin-top: 1.5rem;">';
-
-          columns.forEach(function (column) {
-            columnsHtml += "<div>";
-
-            if (column.title) {
-              columnsHtml +=
-                "<h4 style=\"font-family: 'Montserrat', sans-serif; font-size: 1.25rem; font-weight: bold; color: #1e3a8a; margin-bottom: 1rem;\">" +
-                column.title +
+            "display:grid;grid-template-columns:" +
+            gridCols +
+            ';gap:2rem;margin-top:1.5rem;">';
+          columns.forEach((col) => {
+            colHtml += "<div>";
+            if (col.title)
+              colHtml +=
+                "<h4 style=\"font-family:'Montserrat',sans-serif;font-size:1.25rem;font-weight:bold;color:#1e3a8a;margin-bottom:1rem;\">" +
+                col.title +
                 "</h4>";
-            }
-
-            if (column.items && column.items.length > 0) {
-              columnsHtml +=
-                "<ul style=\"font-family: 'Open Sans', sans-serif; line-height: 1.75; color: #4b5563; list-style: none; padding: 0;\">";
-              column.items.forEach(function (item) {
-                columnsHtml +=
-                  '<li style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">';
-                columnsHtml +=
-                  '<span style="color: #00bcd4; font-size: 1.25rem; line-height: 1;">☑</span>';
-                columnsHtml += "<span>" + item + "</span>";
-                columnsHtml += "</li>";
+            if (col.items && col.items.length) {
+              colHtml +=
+                "<ul style=\"font-family:'Open Sans',sans-serif;line-height:1.75;color:#4b5563;list-style:none;padding:0;\">";
+              col.items.forEach((item) => {
+                colHtml +=
+                  '<li style="display:flex;align-items:flex-start;gap:0.5rem;margin-bottom:0.75rem;"><span style="color:#00bcd4;font-size:1.25rem;line-height:1;">☑</span><span>' +
+                  item +
+                  "</span></li>";
               });
-              columnsHtml += "</ul>";
+              colHtml += "</ul>";
             }
-
-            columnsHtml += "</div>";
+            colHtml += "</div>";
           });
-
-          columnsHtml += "</div>";
-          return columnsHtml;
-
+          colHtml += "</div>";
+          return colHtml;
         default:
           return "";
       }
@@ -1243,405 +939,176 @@ function renderProductContentBlocks(blocks) {
     .join("");
 }
 
-// 🆕 UPDATED: Display variants table with custom fields
 function displayVariants(variants) {
   const tableContainer = document.querySelector(
     '[data-product-detail="variants-table"]',
   );
-
-  if (!tableContainer) {
-    console.error("✗ Variants container not found");
-    return;
-  }
-
-  console.log("✓ Displaying variants with pagination and custom fields");
-
-  // 🆕 Get all unique custom field names
+  if (!tableContainer) return;
   const customFieldNames = new Set();
-  variants.forEach((variant) => {
-    if (variant.customFields) {
-      Object.keys(variant.customFields).forEach((key) =>
-        customFieldNames.add(key),
-      );
-    }
+  variants.forEach((v) => {
+    if (v.customFields)
+      Object.keys(v.customFields).forEach((k) => customFieldNames.add(k));
   });
-
   const totalPages = Math.ceil(variants.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedVariants = variants.slice(startIndex, endIndex);
-
-  let tableHtml = '<div class="variants-table-container">';
-  tableHtml +=
-    "<h2 style=\"font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 1.5rem; margin-bottom: 1rem;\">Available Models</h2>";
-  tableHtml += '<table class="variants-table">';
-  tableHtml += "<thead><tr>";
-  tableHtml += "<th>Model Number</th>";
-
+  const paginatedVariants = variants.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
   const hasCapacity = variants.some((v) => v.capacity);
-  if (hasCapacity) tableHtml += "<th>Capacity</th>";
-
   const hasLength = variants.some((v) => v.length);
-  if (hasLength) tableHtml += "<th>Length</th>";
-
   const hasEndConnection = variants.some((v) => v.endConnection);
+  const hasPrice = variants.some(
+    (v) => v.price !== null && v.price !== undefined,
+  );
+  let tableHtml =
+    '<div class="variants-table-container"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;">Available Models</h2><table class="variants-table"><thead><tr><th>Model Number</th>';
+  if (hasCapacity) tableHtml += "<th>Capacity</th>";
+  if (hasLength) tableHtml += "<th>Length</th>";
   if (hasEndConnection) tableHtml += "<th>End Connection</th>";
-
-  // 🆕 Add custom field headers
-  Array.from(customFieldNames).forEach((fieldName) => {
-    tableHtml += "<th>" + fieldName.toUpperCase() + "</th>";
-  });
-
-  // Add Price column header if any variant has a price
-  var hasPrice = variants.some(function (v) {
-    return v.price !== null && v.price !== undefined;
+  Array.from(customFieldNames).forEach((f) => {
+    tableHtml += "<th>" + f.toUpperCase() + "</th>";
   });
   if (hasPrice) tableHtml += "<th>Price</th>";
-
   tableHtml += "</tr></thead><tbody>";
-
-  paginatedVariants.forEach(function (variant) {
-    var isDisabled = variant.enabled === false;
-    tableHtml += "<tr" + (isDisabled ? ' style="opacity:0.6;"' : "") + ">";
+  paginatedVariants.forEach((v) => {
+    const isDisabled = v.enabled === false;
     tableHtml +=
-      "<td><strong>" +
-      (variant.modelNumber || "N/A") +
+      "<tr" +
+      (isDisabled ? ' style="opacity:0.6;"' : "") +
+      "><td><strong>" +
+      (v.modelNumber || "N/A") +
       "</strong>" +
       (isDisabled
         ? ' <span style="font-size:0.75rem;color:#ef4444;font-weight:600;">⊘ Disabled</span>'
         : "") +
       "</td>";
-    if (hasCapacity) tableHtml += "<td>" + (variant.capacity || "-") + "</td>";
-    if (hasLength) tableHtml += "<td>" + (variant.length || "-") + "</td>";
+    if (hasCapacity) tableHtml += "<td>" + (v.capacity || "-") + "</td>";
+    if (hasLength) tableHtml += "<td>" + (v.length || "-") + "</td>";
     if (hasEndConnection)
-      tableHtml += "<td>" + (variant.endConnection || "-") + "</td>";
-
-    // Add custom field values
-    Array.from(customFieldNames).forEach((fieldName) => {
-      const value = variant.customFields?.[fieldName] || "-";
-      tableHtml += "<td>" + value + "</td>";
+      tableHtml += "<td>" + (v.endConnection || "-") + "</td>";
+    Array.from(customFieldNames).forEach((f) => {
+      tableHtml += "<td>" + (v.customFields?.[f] || "-") + "</td>";
     });
-
-    // Price cell
-    if (hasPrice) {
-      if (isDisabled) {
-        tableHtml +=
-          '<td><span style="color:#9ca3af;font-size:0.85rem;">Not Available</span></td>';
-      } else if (variant.price !== null && variant.price !== undefined) {
-        tableHtml +=
-          "<td><strong>CA$" + variant.price.toFixed(2) + "</strong></td>";
-      } else {
-        tableHtml += "<td>—</td>";
-      }
-    }
-
+    if (hasPrice)
+      tableHtml +=
+        "<td>" +
+        (isDisabled
+          ? '<span style="color:#9ca3af;font-size:0.85rem;">Not Available</span>'
+          : v.price !== null && v.price !== undefined
+            ? "<strong>CA$" + v.price.toFixed(2) + "</strong>"
+            : "—") +
+        "</td>";
     tableHtml += "</tr>";
   });
-
   tableHtml += "</tbody></table>";
-
   if (variants.length > itemsPerPage) {
     tableHtml += '<div class="pagination-container">';
-
     tableHtml +=
       '<button class="pagination-button" onclick="goToPage(' +
       (currentPage - 1) +
       ')" ' +
       (currentPage === 1 ? "disabled" : "") +
       ">← Previous</button>";
-
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage < maxVisiblePages - 1) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    if (startPage > 1) {
-      tableHtml +=
-        '<button class="pagination-button" onclick="goToPage(1)">1</button>';
-      if (startPage > 2) {
-        tableHtml += '<span class="pagination-info">...</span>';
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      const activeClass = i === currentPage ? " active" : "";
+    for (let i = 1; i <= totalPages; i++) {
       tableHtml +=
         '<button class="pagination-button' +
-        activeClass +
+        (i === currentPage ? " active" : "") +
         '" onclick="goToPage(' +
         i +
         ')">' +
         i +
         "</button>";
     }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        tableHtml += '<span class="pagination-info">...</span>';
-      }
-      tableHtml +=
-        '<button class="pagination-button" onclick="goToPage(' +
-        totalPages +
-        ')">' +
-        totalPages +
-        "</button>";
-    }
-
     tableHtml +=
       '<button class="pagination-button" onclick="goToPage(' +
       (currentPage + 1) +
       ')" ' +
       (currentPage === totalPages ? "disabled" : "") +
       ">Next →</button>";
-
-    const showingStart = startIndex + 1;
-    const showingEnd = Math.min(endIndex, variants.length);
     tableHtml +=
       '<span class="pagination-info">Showing ' +
-      showingStart +
+      (startIndex + 1) +
       "-" +
-      showingEnd +
+      Math.min(startIndex + itemsPerPage, variants.length) +
       " of " +
       variants.length +
       "</span>";
-
     tableHtml += "</div>";
   }
-
   tableHtml += "</div>";
-
-  // 🆕 Mobile cards with custom fields
-  let cardsHtml = '<div class="variants-cards">';
-  cardsHtml +=
-    "<h2 style=\"font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 1.5rem; margin-bottom: 1rem;\">Available Models</h2>";
-
-  variants.forEach(function (variant) {
-    cardsHtml += '<div class="variant-card">';
+  let cardsHtml =
+    '<div class="variants-cards"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;">Available Models</h2>';
+  variants.forEach((v) => {
     cardsHtml +=
-      '<div class="variant-card-header">' +
-      (variant.modelNumber || "Variant") +
+      '<div class="variant-card"><div class="variant-card-header">' +
+      (v.modelNumber || "Variant") +
       "</div>";
-
-    if (variant.capacity) {
-      cardsHtml += '<div class="variant-card-row">';
-      cardsHtml += '<div class="variant-card-label">Capacity</div>';
+    if (v.capacity)
       cardsHtml +=
-        '<div class="variant-card-value">' + variant.capacity + "</div>";
-      cardsHtml += "</div>";
-    }
-
-    if (variant.length) {
-      cardsHtml += '<div class="variant-card-row">';
-      cardsHtml += '<div class="variant-card-label">Length</div>';
+        '<div class="variant-card-row"><div class="variant-card-label">Capacity</div><div class="variant-card-value">' +
+        v.capacity +
+        "</div></div>";
+    if (v.length)
       cardsHtml +=
-        '<div class="variant-card-value">' + variant.length + "</div>";
-      cardsHtml += "</div>";
-    }
-
-    if (variant.endConnection) {
-      cardsHtml += '<div class="variant-card-row">';
-      cardsHtml += '<div class="variant-card-label">End Connection</div>';
+        '<div class="variant-card-row"><div class="variant-card-label">Length</div><div class="variant-card-value">' +
+        v.length +
+        "</div></div>";
+    if (v.endConnection)
       cardsHtml +=
-        '<div class="variant-card-value">' + variant.endConnection + "</div>";
-      cardsHtml += "</div>";
-    }
-
-    // 🆕 Add custom fields to mobile cards
-    if (variant.customFields) {
-      Object.entries(variant.customFields).forEach(([fieldName, value]) => {
-        cardsHtml += '<div class="variant-card-row">';
-        cardsHtml += '<div class="variant-card-label">' + fieldName + "</div>";
-        cardsHtml += '<div class="variant-card-value">' + value + "</div>";
-        cardsHtml += "</div>";
+        '<div class="variant-card-row"><div class="variant-card-label">End Connection</div><div class="variant-card-value">' +
+        v.endConnection +
+        "</div></div>";
+    if (v.customFields)
+      Object.entries(v.customFields).forEach(([k, val]) => {
+        cardsHtml +=
+          '<div class="variant-card-row"><div class="variant-card-label">' +
+          k +
+          '</div><div class="variant-card-value">' +
+          val +
+          "</div></div>";
       });
-    }
-
     cardsHtml += "</div>";
   });
-
   cardsHtml += "</div>";
-
   tableContainer.innerHTML = tableHtml + cardsHtml;
-  console.log("✓ Variants displayed with custom fields (table + cards)");
 }
 
 function goToPage(pageNumber) {
   currentPage = pageNumber;
   displayVariants(allVariants);
-
   const tableContainer = document.querySelector(
     '[data-product-detail="variants-table"]',
   );
-  if (tableContainer) {
+  if (tableContainer)
     tableContainer.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-function injectBreadcrumb(productTitle, category) {
-  // Remove existing breadcrumb if any
-  var existing = document.querySelector('.bp-breadcrumb');
-  if (existing) existing.remove();
-
-  var breadcrumbHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">';
-  breadcrumbHTML += '<a href="https://basepointengineering.com">Home</a>';
-  breadcrumbHTML += '<span class="bp-separator">›</span>';
-
-  if (category) {
-    breadcrumbHTML += '<a href="https://basepointengineering.com/products?category=' + encodeURIComponent(category) + '">' + category + '</a>';
-    breadcrumbHTML += '<span class="bp-separator">›</span>';
-  } else {
-    breadcrumbHTML += '<a href="https://basepointengineering.com/products">Products</a>';
-    breadcrumbHTML += '<span class="bp-separator">›</span>';
-  }
-
-  breadcrumbHTML += '<span class="bp-current">' + productTitle + '</span>';
-  breadcrumbHTML += '</nav>';
-
-  // Inject after the main content container's parent, before the content starts
-  var target = document.querySelector('[data-product-detail="content"]');
-  if (target && target.parentElement) {
-    target.parentElement.insertBefore(
-      (function() {
-        var div = document.createElement('div');
-        div.innerHTML = breadcrumbHTML;
-        return div.firstChild;
-      })(),
-      target
-    );
-  }
-
-  // Inject JSON-LD BreadcrumbList schema
-  var schemaScript = document.getElementById('bp-breadcrumb-schema');
-  if (schemaScript) schemaScript.remove();
-
-  var slug = getSlugFromURL();
-  var schema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://basepointengineering.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": category || "Products",
-        "item": category
-          ? "https://basepointengineering.com/products?category=" + encodeURIComponent(category)
-          : "https://basepointengineering.com/products"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": productTitle,
-        "item": "https://basepointengineering.com/product-detail?slug=" + encodeURIComponent(slug || '')
-      }
-    ]
-  };
-
-  var script = document.createElement('script');
-  script.type = 'application/ld+json';
-  script.id = 'bp-breadcrumb-schema';
-  script.textContent = JSON.stringify(schema, null, 2);
-  document.head.appendChild(script);
-
-  console.log('✓ Breadcrumb + JSON-LD injected');
 }
 
 function showError(message) {
   const contentEl = document.querySelector('[data-product-detail="content"]');
-  if (contentEl) {
+  if (contentEl)
     contentEl.innerHTML =
-      '<div style="text-align: center; padding: 3rem;">' +
-      "<p style=\"color: #ef4444; font-size: 1.25rem; font-family: 'Open Sans', sans-serif; margin-bottom: 1rem;\">" +
+      '<div style="text-align:center;padding:3rem;"><p style="color:#ef4444;font-size:1.25rem;font-family:\'Open Sans\',sans-serif;margin-bottom:1rem;">' +
       message +
-      '</p><a href="/" style="color: #3b82f6; text-decoration: underline; font-family: \'Open Sans\', sans-serif;">← Back to Home</a>' +
-      "</div>";
-  }
+      '</p><a href="/" style="color:#3b82f6;text-decoration:underline;">← Back to Home</a></div>';
 }
 
 function showPreviewClaimModal(variant) {
-  // Remove existing modal if any
   var existing = document.getElementById("preview-claim-modal");
   if (existing) existing.remove();
-
   var productSlug = getSlugFromURL();
   var productTitle =
     document.querySelector('[data-product-detail="title"]')?.textContent || "";
   var checkoutLink = currentProductStripePaymentLink || window.location.href;
-
   var overlay = document.createElement("div");
   overlay.id = "preview-claim-modal";
   overlay.style.cssText =
     "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
-
-  overlay.innerHTML = [
-    '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">',
-
-    // Header
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">',
-    "<div>",
-    '<p style="font-family:Montserrat,sans-serif;font-size:0.75rem;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.35rem;">Good News</p>',
-    '<h2 style="font-family:Montserrat,sans-serif;font-size:1.3rem;font-weight:700;color:#111827;margin:0;line-height:1.3;">Your engineering drawing is ready — want us to send it?</h2>',
-    "</div>",
-    '<button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;margin-left:1rem;flex-shrink:0;">×</button>',
-    "</div>",
-
-    // Variant badge
-    '<div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0.35rem 0.75rem;margin-bottom:1rem;">',
-    '<span style="font-size:0.75rem;color:#1d4ed8;font-family:Open Sans,sans-serif;">Selected:</span>',
-    '<span style="font-size:0.8rem;font-weight:700;color:#1e3a8a;font-family:Montserrat,sans-serif;">' +
-      (variant.modelNumber || "") +
-      "</span>",
-    "</div>",
-
-    // Body copy
-    '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.6;margin:0 0 1.25rem;">',
-    "We've prepared a detailed engineering drawing for this variant. Drop your details below and we'll email it to you instantly — along with a direct checkout link so you're ready to order when you are.",
-    "</p>",
-
-    // Trust signals
-    '<div style="display:flex;gap:1.25rem;margin-bottom:1.25rem;">',
-    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Instant delivery</span>',
-    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> No spam, ever</span>',
-    '<span style="font-family:Open Sans,sans-serif;font-size:0.75rem;color:#6b7280;display:flex;align-items:center;gap:0.3rem;"><span style="color:#16a34a;font-weight:700;">✓</span> Free</span>',
-    "</div>",
-
-    // Error
-    '<div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
-
-    // Name field
-    '<div style="margin-bottom:0.875rem;">',
-    '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Full Name *</label>',
-    '<input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
-    "</div>",
-
-    // Email field
-    '<div style="margin-bottom:1.5rem;">',
-    '<label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Work Email *</label>',
-    '<input id="modal-email" type="email" placeholder="jane@company.com" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
-    "</div>",
-
-    // Success
-    '<div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div>',
-
-    // Buttons
-    '<div style="display:flex;gap:0.75rem;">',
-    '<button id="modal-submit-btn" style="flex:1;padding:0.8rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Send Me the Drawing →</button>',
-    '<button id="modal-cancel-btn" style="padding:0.8rem 1.1rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.85rem;cursor:pointer;">Maybe Later</button>',
-    "</div>",
-
-    "</div>",
-  ].join("");
-
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;"><div><p style="font-family:Montserrat,sans-serif;font-size:0.75rem;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.35rem;">Good News</p><h2 style="font-family:Montserrat,sans-serif;font-size:1.3rem;font-weight:700;color:#111827;margin:0;line-height:1.3;">Your engineering drawing is ready — want us to send it?</h2></div><button id="modal-close-btn" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:#9ca3af;line-height:1;margin-left:1rem;flex-shrink:0;">×</button></div><div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:0.35rem 0.75rem;margin-bottom:1rem;"><span style="font-size:0.75rem;color:#1d4ed8;font-family:Open Sans,sans-serif;">Selected:</span><span style="font-size:0.8rem;font-weight:700;color:#1e3a8a;font-family:Montserrat,sans-serif;">' +
+    (variant.modelNumber || "") +
+    '</span></div><p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.6;margin:0 0 1.25rem;">We\'ve prepared a detailed engineering drawing for this variant. Drop your details below and we\'ll email it to you instantly.</p><div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div><div style="margin-bottom:0.875rem;"><label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Full Name *</label><input id="modal-name" type="text" placeholder="Jane Smith" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" /></div><div style="margin-bottom:1.5rem;"><label style="display:block;font-family:Open Sans,sans-serif;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Work Email *</label><input id="modal-email" type="email" placeholder="jane@company.com" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #d1d5db;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.9rem;outline:none;" /></div><div id="modal-success" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:0.75rem;font-size:0.875rem;margin-bottom:1rem;font-family:Open Sans,sans-serif;"></div><div style="display:flex;gap:0.75rem;"><button id="modal-submit-btn" style="flex:1;padding:0.8rem;background:#1e3a8a;color:#fff;border:none;border-radius:8px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">Send Me the Drawing →</button><button id="modal-cancel-btn" style="padding:0.8rem 1.1rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-family:Open Sans,sans-serif;font-size:0.85rem;cursor:pointer;">Maybe Later</button></div></div>';
   document.body.appendChild(overlay);
-
   document.getElementById("modal-close-btn").onclick = function () {
     overlay.remove();
   };
@@ -1651,49 +1118,40 @@ function showPreviewClaimModal(variant) {
   overlay.onclick = function (e) {
     if (e.target === overlay) overlay.remove();
   };
-
   document.getElementById("modal-submit-btn").onclick = async function () {
     var name = document.getElementById("modal-name").value.trim();
     var email = document.getElementById("modal-email").value.trim();
     var errorEl = document.getElementById("modal-error");
-    var successEl = document.getElementById("modal-success");
     var submitBtn = document.getElementById("modal-submit-btn");
-
     errorEl.style.display = "none";
-    successEl.style.display = "none";
-
     if (!name || !email) {
       errorEl.textContent = "Please enter your name and email.";
       errorEl.style.display = "block";
       return;
     }
-
     submitBtn.disabled = true;
-    submitBtn.textContent = "Sending your specs...";
-
+    submitBtn.textContent = "Sending...";
     try {
       var res = await fetch(API_URL + "/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name,
-          email: email,
-          productSlug: productSlug,
-          productTitle: productTitle,
+          name,
+          email,
+          productSlug,
+          productTitle,
           variantId: variant.id,
           variantModel: variant.modelNumber,
           previewFileLink: variant.previewFileLink,
-          checkoutLink: checkoutLink,
+          checkoutLink,
         }),
       });
       var data = await res.json();
-
       if (data.success) {
         overlay.remove();
         showPreviewSuccessModal(name);
       } else {
-        errorEl.textContent =
-          data.error || "Something went wrong. Please try again.";
+        errorEl.textContent = data.error || "Something went wrong.";
         errorEl.style.display = "block";
         submitBtn.disabled = false;
         submitBtn.textContent = "Send Me the Drawing →";
@@ -1709,78 +1167,38 @@ function showPreviewClaimModal(variant) {
 
 function showPreviewSuccessModal(name) {
   var popup = document.createElement("div");
-  popup.id = "preview-success-modal";
   popup.style.cssText =
     "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;";
-
-  popup.innerHTML = [
-    '<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25);text-align:center;">',
-
-    // Icon
-    '<div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">🎉</div>',
-
-    // Label
-    '<p style="font-family:Montserrat,sans-serif;font-size:0.7rem;font-weight:700;color:#16a34a;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.5rem;">You\'re all set</p>',
-
-    // Headline
-    '<h2 style="font-family:Montserrat,sans-serif;font-size:1.4rem;font-weight:700;color:#111827;margin:0 0 0.75rem;line-height:1.3;">Congratulations, ' +
-      name +
-      "!</h2>",
-
-    // Body
-    '<p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.65;margin:0 0 1.75rem;">',
-    "Your engineering drawing is on its way. Check your inbox — we've also included a direct checkout link so you can move forward whenever you're ready.",
-    "</p>",
-
-    // Close button
-    '<button id="success-close-btn" style="width:100%;padding:0.85rem;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.02em;">Got it, thanks!</button>',
-
-    // Microcopy
-    '<p style="font-family:Open Sans,sans-serif;font-size:0.72rem;color:#9ca3af;margin:0.875rem 0 0;">Didn\'t receive it? Check your spam folder.</p>',
-
-    "</div>",
-  ].join("");
-
+  popup.innerHTML =
+    '<div style="background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25);text-align:center;"><div style="width:64px;height:64px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">🎉</div><h2 style="font-family:Montserrat,sans-serif;font-size:1.4rem;font-weight:700;color:#111827;margin:0 0 0.75rem;">Congratulations, ' +
+    name +
+    '!</h2><p style="font-family:Open Sans,sans-serif;color:#4b5563;font-size:0.875rem;line-height:1.65;margin:0 0 1.75rem;">Your engineering drawing is on its way.</p><button onclick="this.closest(\'div\').parentElement.remove()" style="width:100%;padding:0.85rem;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-family:Montserrat,sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">Got it, thanks!</button></div>';
   document.body.appendChild(popup);
-
-  document.getElementById("success-close-btn").onclick = function () {
-    popup.remove();
-  };
   popup.onclick = function (e) {
     if (e.target === popup) popup.remove();
   };
 }
 
-// Initialize
-loadGoogleFonts();
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function () {
-    setTimeout(loadProductDetail, 500);
-  });
-} else {
-  setTimeout(loadProductDetail, 500);
-}
-
-console.log(
-  "✓ Product detail script loaded with custom fields and Stripe Payment Link support",
-);
-
-// =========================================================
-// CANONICAL INJECTION LOGIC
-// =========================================================
-const urlParams = new URLSearchParams(window.location.search);
-const productSlug = urlParams.get("slug");
-
-if (productSlug) {
-  // Change 'product-detail' to 'blog-detail' on your blog template page!
-  const canonicalUrl = `https://basepointengineering.com/product-detail?slug=${productSlug}`;
-
-  let link = document.querySelector("link[rel='canonical']");
-  if (!link) {
-    link = document.createElement("link");
-    link.setAttribute("rel", "canonical");
-    document.head.appendChild(link);
+// ── Canonical ─────────────────────────────
+(function () {
+  const productSlug = new URLSearchParams(window.location.search).get("slug");
+  if (productSlug) {
+    const canonicalUrl =
+      "https://basepointengineering.com/product-detail?slug=" + productSlug;
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonicalUrl);
   }
-  link.setAttribute("href", canonicalUrl);
+})();
+
+// ── Init ──────────────────────────────────
+loadGoogleFonts();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", loadProductDetail);
+} else {
+  loadProductDetail();
 }
