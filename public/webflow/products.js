@@ -67,11 +67,26 @@ async function injectProductSchema() {
         "url": "https://basepointengineering.com/product-detail?slug=" + encodeURIComponent(p.slug),
         "image": p.imageUrl || undefined,
         "category": p.category || undefined,
+        "sku": p.slug,
+        "brand": { "@type": "Brand", "name": "Basepoint Engineering" },
         "offers": p.basePrice ? {
           "@type": "Offer",
           "price": p.basePrice.toFixed(2),
           "priceCurrency": "CAD",
-          "availability": "https://schema.org/InStock"
+          "availability": "https://schema.org/InStock",
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": { "@type": "MonetaryAmount", "value": "0.00", "currency": "CAD" },
+            "deliveryTime": { "@type": "ShippingDeliveryTime", "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY" }, "transitTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" } }
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "CA",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 30,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn"
+          }
         } : undefined
       };
     });
