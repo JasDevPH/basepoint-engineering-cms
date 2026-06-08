@@ -49,11 +49,11 @@ function setMetaTag(property, content) {
 
 // ── Breadcrumb (outside grid, before it) ────
 function injectBreadcrumb() {
-  var existing = document.querySelector(".bp-breadcrumb");
+  var existing = document.querySelector(".bp-breadcrumb-wrapper");
   if (existing) existing.remove();
 
   var wrapper = document.createElement("div");
-  wrapper.style.textAlign = "center";
+  wrapper.className = "bp-breadcrumb-wrapper";
   wrapper.innerHTML =
     '<nav class="bp-breadcrumb" aria-label="Breadcrumb">' +
     '<a href="https://basepointengineering.com">Home</a>' +
@@ -66,7 +66,7 @@ function injectBreadcrumb() {
     grid.parentElement.insertBefore(wrapper, grid);
   }
 
-  // JSON-LD
+  // JSON-LD schema
   var s = document.getElementById("bp-breadcrumb-schema");
   if (s) s.remove();
   s = document.createElement("script");
