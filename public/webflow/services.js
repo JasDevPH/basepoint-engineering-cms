@@ -1,7 +1,7 @@
-// Services Listing Page — injects cards, SEO tags, breadcrumb
-const API_URL = 'https://cms.basepointengineering.com';
+// Services Listing Page
+var API_URL = 'https://cms.basepointengineering.com';
 
-// SEO defaults (static, indexed by Google even without JS)
+// ── SEO ────────────────────────────────────
 document.title = 'Engineering Services | Basepoint Engineering';
 
 (function setStaticSEO() {
@@ -9,11 +9,7 @@ document.title = 'Engineering Services | Basepoint Engineering';
   var canonical = 'https://basepointengineering.com/services';
 
   var metaDesc = document.querySelector('meta[name="description"]');
-  if (!metaDesc) {
-    metaDesc = document.createElement('meta');
-    metaDesc.name = 'description';
-    document.head.appendChild(metaDesc);
-  }
+  if (!metaDesc) { metaDesc = document.createElement('meta'); metaDesc.name = 'description'; document.head.appendChild(metaDesc); }
   metaDesc.content = desc;
 
   setMetaTag('og:title', 'Engineering Services | Basepoint Engineering');
@@ -24,114 +20,79 @@ document.title = 'Engineering Services | Basepoint Engineering';
   setMetaTag('og:type', 'website');
 
   var link = document.querySelector("link[rel='canonical']");
-  if (!link) {
-    link = document.createElement('link');
-    link.rel = 'canonical';
-    document.head.appendChild(link);
-  }
+  if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
   link.href = canonical;
-
-  // Breadcrumb + JSON-LD
-  injectBreadcrumb();
 })();
 
 function setMetaTag(property, content) {
   if (!content) return;
   var tag = document.querySelector('meta[property="' + property + '"]') || document.querySelector('meta[name="' + property + '"]');
-  if (!tag) {
-    tag = document.createElement('meta');
-    if (property.indexOf('og:') === 0) tag.setAttribute('property', property);
-    else tag.setAttribute('name', property);
-    document.head.appendChild(tag);
-  }
+  if (!tag) { tag = document.createElement('meta'); if (property.indexOf('og:') === 0) tag.setAttribute('property', property); else tag.setAttribute('name', property); document.head.appendChild(tag); }
   tag.setAttribute('content', content);
 }
 
+// ── Breadcrumb (outside grid, before it) ────
 function injectBreadcrumb() {
   var existing = document.querySelector('.bp-breadcrumb');
   if (existing) existing.remove();
 
-  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="text-align:center;">';
-  html += '<a href="https://basepointengineering.com">Home</a>';
-  html += '<span class="bp-separator">›</span>';
-  html += '<span class="bp-current">Services</span>';
-  html += '</nav>';
+  var wrapper = document.createElement('div');
+  wrapper.style.textAlign = 'center';
+  wrapper.innerHTML = '<nav class="bp-breadcrumb" aria-label="Breadcrumb">' +
+    '<a href="https://basepointengineering.com">Home</a>' +
+    '<span class="bp-separator">›</span>' +
+    '<span class="bp-current">Services</span>' +
+    '</nav>';
 
-  var target = document.querySelector('[data-services="grid"]');
-  if (target) {
-    target.insertAdjacentHTML('afterbegin', html);
-  } else {
-    var fallback = document.querySelector('main') || document.querySelector('.container');
-    if (fallback) fallback.insertAdjacentHTML('afterbegin', html);
+  var grid = document.querySelector('[data-services="grid"]');
+  if (grid && grid.parentElement) {
+    grid.parentElement.insertBefore(wrapper, grid);
   }
 
-  var existingSchema = document.getElementById('bp-breadcrumb-schema');
-  if (existingSchema) existingSchema.remove();
-
-  var schema = {
+  // JSON-LD
+  var s = document.getElementById('bp-breadcrumb-schema');
+  if (s) s.remove();
+  s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.id = 'bp-breadcrumb-schema';
+  s.textContent = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://basepointengineering.com" },
       { "@type": "ListItem", "position": 2, "name": "Services", "item": "https://basepointengineering.com/services" }
     ]
-  };
-
-  var script = document.createElement('script');
-  script.type = 'application/ld+json';
-  script.id = 'bp-breadcrumb-schema';
-  script.textContent = JSON.stringify(schema, null, 2);
-  document.head.appendChild(script);
+  });
+  document.head.appendChild(s);
 }
 
-// Icon name → Lucide icon mapping
+// ── Icon mapping ───────────────────────────
 var ICON_MAP = {
-  'Settings': 'settings',
-  'Glasses': 'glasses',
-  'Forklift': 'truck',
-  'Zap': 'zap',
-  'Briefcase': 'briefcase',
-  'Wrench': 'wrench',
-  'Clipboard': 'clipboard-check',
-  'HardHat': 'hard-hat',
-  'Cog': 'cog',
-  'Hammer': 'hammer',
-  'Ruler': 'ruler',
-  'PenTool': 'pen-tool'
+  'Settings':'settings','Glasses':'glasses','Forklift':'truck','Zap':'zap',
+  'Briefcase':'briefcase','Wrench':'wrench','Clipboard':'clipboard-check',
+  'HardHat':'hard-hat','Cog':'cog','Hammer':'hammer','Ruler':'ruler','PenTool':'pen-tool'
 };
+function getIcon(name) { return ICON_MAP[name] || 'briefcase'; }
 
-function getLucideIcon(iconName) {
-  return ICON_MAP[iconName] || 'briefcase';
-}
-
+// ── Skeleton ───────────────────────────────
 function showSkeleton(grid) {
-  // Ensure grid layout
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(340px, 1fr))';
-  grid.style.gap = '1.5rem';
-  grid.style.padding = '2rem 0';
-
   var count = window.innerWidth <= 480 ? 2 : 4;
-  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="grid-column:1/-1;text-align:center;justify-self:center;width:100%;margin-bottom:0.5rem;">';
-  html += '<a href="https://basepointengineering.com">Home</a>';
-  html += '<span class="bp-separator">›</span>';
-  html += '<span class="bp-current">Services</span>';
-  html += '</nav>';
-
+  var h = '';
   for (var i = 0; i < count; i++) {
-    html += '<div class="svc-card svc-skeleton">';
-    html += '<div class="svc-card-icon skel-shimmer"></div>';
-    html += '<div class="svc-card-body">';
-    html += '<div class="skel-line skel-line-title skel-shimmer"></div>';
-    html += '<div class="skel-line skel-shimmer"></div>';
-    html += '<div class="skel-line skel-line-short skel-shimmer"></div>';
-    html += '</div>';
-    html += '<div class="svc-card-arrow skel-shimmer" style="width:20px;height:20px;border-radius:50%;"></div>';
-    html += '</div>';
+    h += '<div class="svc-card svc-skeleton">' +
+      '<div class="svc-card-icon skel-shimmer"></div>' +
+      '<div class="svc-card-body">' +
+      '<div class="skel-line skel-line-title skel-shimmer"></div>' +
+      '<div class="skel-line skel-shimmer"></div>' +
+      '<div class="skel-line skel-line-short skel-shimmer"></div>' +
+      '</div>' +
+      '<div class="svc-card-arrow skel-shimmer" style="width:20px;height:20px;border-radius:50%;"></div>' +
+      '</div>';
   }
-  grid.innerHTML = html;
+  grid.innerHTML = h;
 }
 
+// ── Load ───────────────────────────────────
 async function loadServices() {
   var grid = document.querySelector('[data-services="grid"]');
   if (grid) showSkeleton(grid);
@@ -139,7 +100,6 @@ async function loadServices() {
   try {
     var res = await fetch(API_URL + '/api/services');
     var data = await res.json();
-
     if (data.success && data.data.length > 0) {
       displayServices(data.data);
     } else {
@@ -147,7 +107,7 @@ async function loadServices() {
     }
   } catch (err) {
     console.error('Error loading services:', err);
-    if (grid) grid.innerHTML = '<p class="svc-error">Failed to load services. Please try again.</p>';
+    if (grid) grid.innerHTML = '<p class="svc-error">Failed to load services.</p>';
   }
 }
 
@@ -155,44 +115,23 @@ function displayServices(services) {
   var grid = document.querySelector('[data-services="grid"]');
   if (!grid) return;
 
-  // Ensure grid layout
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(340px, 1fr))';
-  grid.style.gap = '1.5rem';
-  grid.style.padding = '2rem 0';
+  grid.innerHTML = services.map(function(svc) {
+    var icon = getIcon(svc.icon);
+    return '<a href="/service-detail?slug=' + svc.slug + '" class="svc-card">' +
+      '<div class="svc-card-icon"><i data-lucide="' + icon + '" class="svc-icon"></i></div>' +
+      '<div class="svc-card-body">' +
+      '<h3 class="svc-card-title">' + svc.title + '</h3>' +
+      '<p class="svc-card-excerpt">' + (svc.excerpt || '') + '</p>' +
+      '</div>' +
+      '<div class="svc-card-arrow">›</div>' +
+      '</a>';
+  }).join('');
 
-  // Breadcrumb first
-  var html = '<nav class="bp-breadcrumb" aria-label="Breadcrumb" style="grid-column:1/-1;text-align:center;justify-self:center;width:100%;margin-bottom:0.5rem;">';
-  html += '<a href="https://basepointengineering.com">Home</a>';
-  html += '<span class="bp-separator">›</span>';
-  html += '<span class="bp-current">Services</span>';
-  html += '</nav>';
-
-  services.forEach(function(svc) {
-    var iconName = getLucideIcon(svc.icon);
-    html += '<a href="/service-detail?slug=' + svc.slug + '" class="svc-card" title="' + svc.title + '">';
-    html += '<div class="svc-card-icon">';
-    html += '<i data-lucide="' + iconName + '" class="svc-icon"></i>';
-    html += '</div>';
-    html += '<div class="svc-card-body">';
-    html += '<h3 class="svc-card-title">' + svc.title + '</h3>';
-    html += '<p class="svc-card-excerpt">' + (svc.excerpt || '') + '</p>';
-    html += '</div>';
-    html += '<div class="svc-card-arrow">›</div>';
-    html += '</a>';
-  });
-
-  grid.innerHTML = html;
-
-  // Initialize Lucide icons
-  if (window.lucide) {
-    setTimeout(function() {
-      window.lucide.createIcons();
-    }, 50);
-  }
+  if (window.lucide) { setTimeout(function() { window.lucide.createIcons(); }, 50); }
 }
 
-// Initialize on DOM ready
+// ── Init ───────────────────────────────────
+injectBreadcrumb();
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadServices);
 } else {
