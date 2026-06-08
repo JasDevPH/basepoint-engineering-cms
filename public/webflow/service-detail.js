@@ -47,20 +47,16 @@ function skelBar(w, h, mb) {
 
 // ── Skeleton Loading ───────────────────────
 function showSkeleton() {
-  // Title
   const titleEl = document.querySelector('[data-service="title"]');
   if (titleEl) titleEl.innerHTML = skelBar("55%", "2.5rem", "0");
 
-  // Excerpt
   const excerptEl = document.querySelector('[data-service="excerpt"]');
   if (excerptEl)
     excerptEl.innerHTML = skelBar("90%", "1rem") + skelBar("70%", "1rem", "0");
 
-  // Breadcrumb
   const breadcrumbEl = document.querySelector('[data-service="breadcrumb"]');
   if (breadcrumbEl) breadcrumbEl.innerHTML = skelBar("30%", "1rem", "0");
 
-  // Content
   const contentEl = document.querySelector('[data-service="content"]');
   if (contentEl) {
     let html = skelBar("45%", "2rem", "1.5rem");
@@ -84,7 +80,6 @@ function showSkeleton() {
     contentEl.innerHTML = html;
   }
 
-  // Side nav
   const navContainer = document.querySelector('[data-service-nav="container"]');
   if (navContainer) {
     let navHtml =
@@ -130,8 +125,8 @@ async function loadSideNavigation(currentSlug) {
 }
 
 function displaySideNavigation(services, currentSlug) {
-  // Prevent duplicate mobile nav
-  const existingMobileNav = document.getElementById("side-nav-mobile");
+  // ── Always remove existing mobile nav first ──
+  var existingMobileNav = document.getElementById("side-nav-mobile");
   if (existingMobileNav) existingMobileNav.remove();
 
   let html =
@@ -153,18 +148,17 @@ function displaySideNavigation(services, currentSlug) {
   });
   html += "</div>";
 
+  // ── Desktop: inject into side nav container ──
   const navContainer = document.querySelector('[data-service-nav="container"]');
   if (navContainer) navContainer.innerHTML = html;
 
-  if (window.innerWidth <= 768) {
+  // ── Mobile/tablet: inject below content ──
+  if (window.innerWidth <= 991) {
     const contentContainer = document.querySelector('[data-service="content"]');
     if (contentContainer && contentContainer.parentElement) {
-      let mobileNav = document.getElementById("side-nav-mobile");
-      if (!mobileNav) {
-        mobileNav = document.createElement("div");
-        mobileNav.id = "side-nav-mobile";
-        mobileNav.className = "side-nav-mobile-container";
-      }
+      const mobileNav = document.createElement("div");
+      mobileNav.id = "side-nav-mobile";
+      mobileNav.className = "side-nav-mobile-container";
       mobileNav.innerHTML = html;
       contentContainer.parentElement.appendChild(mobileNav);
     }
@@ -175,12 +169,18 @@ function displaySideNavigation(services, currentSlug) {
   }, 100);
 }
 
+// ── Resize: only reload nav when crossing breakpoint ──
 let resizeTimeout;
+let lastIsMobile = window.innerWidth <= 991;
 window.addEventListener("resize", function () {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(function () {
-    const slug = getSlugFromURL();
-    if (slug) loadSideNavigation(slug);
+    const nowIsMobile = window.innerWidth <= 991;
+    if (nowIsMobile !== lastIsMobile) {
+      lastIsMobile = nowIsMobile;
+      const slug = getSlugFromURL();
+      if (slug) loadSideNavigation(slug);
+    }
   }, 250);
 });
 
@@ -192,7 +192,6 @@ async function loadServiceDetail() {
     return;
   }
 
-  // Show skeleton immediately — no spinner
   showSkeleton();
 
   try {
