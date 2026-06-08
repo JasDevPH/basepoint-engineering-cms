@@ -1,5 +1,5 @@
 // Blogs Listing Page — dynamic JSON-LD CollectionPage schema
-var API_URL = 'https://cms.basepointengineering.com';
+var BLOG_API = 'https://cms.basepointengineering.com';
 
 // ── SEO ────────────────────────────────────
 document.title = 'Blogs | Basepoint Engineering';
@@ -54,7 +54,7 @@ function injectBreadcrumb() {
 // ── Dynamic JSON-LD CollectionPage ─────────
 async function injectBlogSchema() {
   try {
-    var res = await fetch(API_URL + '/api/blogs');
+    var res = await fetch(BLOG_API + '/api/blogs');
     var data = await res.json();
     if (!data.success || !data.data) return;
 

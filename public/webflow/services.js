@@ -1,5 +1,5 @@
 // Services Listing Page
-var API_URL = "https://cms.basepointengineering.com";
+var SERVICE_API = "https://cms.basepointengineering.com";
 
 // ── SEO ────────────────────────────────────
 document.title = "Engineering Services | Basepoint Engineering";
@@ -153,7 +153,7 @@ async function loadServices() {
   if (grid) showSkeleton(grid);
 
   try {
-    var res = await fetch(API_URL + "/api/services");
+    var res = await fetch(SERVICE_API + "/api/services");
     var data = await res.json();
     if (data.success && data.data.length > 0) {
       displayServices(data.data);

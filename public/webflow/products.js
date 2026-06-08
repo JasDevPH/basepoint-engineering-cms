@@ -1,5 +1,5 @@
 // Products Listing Page — dynamic JSON-LD CollectionPage schema
-var API_URL = 'https://cms.basepointengineering.com';
+var PRODUCT_API = 'https://cms.basepointengineering.com';
 var PAGE_CANONICAL = 'https://basepointengineering.com/products';
 var PAGE_DESC = 'Pre-engineered manufacturing drawings for below-the-hook lifting devices. PE-stamped spreader bars, lifting beams, crane jibs, forklift attachments, and baskets. Basepoint Engineering.';
 
@@ -54,7 +54,7 @@ function injectBreadcrumb() {
 // ── Dynamic JSON-LD CollectionPage ─────────
 async function injectProductSchema() {
   try {
-    var res = await fetch(API_URL + '/api/products');
+    var res = await fetch(PRODUCT_API + '/api/products');
     var data = await res.json();
     if (!data.success || !data.data) return;
 
