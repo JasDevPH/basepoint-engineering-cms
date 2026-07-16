@@ -432,6 +432,8 @@ function displayProductDetail(product) {
 
   if (product.showVariantsTable && allVariants.length > 0)
     displayVariants(allVariants);
+
+  if (product.faqs && product.faqs.length > 0) displayProductFaqs(product.faqs);
 }
 
 // ── Breadcrumb ────────────────────────────
@@ -1162,6 +1164,64 @@ function goToPage(pageNumber) {
   );
   if (tableContainer)
     tableContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ── FAQ accordion ──────────────────────────
+function displayProductFaqs(faqs) {
+  if (!faqs || faqs.length === 0) return;
+
+  var html = '<div class="product-faqs">';
+  html += '<h2 class="faq-section-title">Frequently Asked Questions</h2>';
+  html += '<div class="faq-list">';
+  faqs.forEach(function (f) {
+    html += '<div class="faq-item">';
+    html +=
+      '<button type="button" class="faq-question" onclick="toggleFaq(this)">';
+    html += '<span class="faq-question-text">' + f.question + "</span>";
+    html += '<span class="faq-icon">+</span>';
+    html += "</button>";
+    html += '<div class="faq-answer hidden">';
+    html += '<div class="faq-answer-inner">' + f.answer + "</div>";
+    html += "</div>";
+    html += "</div>";
+  });
+  html += "</div></div>";
+
+  var anchor =
+    document.querySelector('[data-product-detail="variants-table"]') ||
+    document.querySelector('[data-product-detail="content"]');
+  if (anchor) anchor.insertAdjacentHTML("afterend", html);
+
+  injectFaqSchema(faqs);
+}
+
+function toggleFaq(buttonEl) {
+  var answerEl = buttonEl.nextElementSibling;
+  var isHidden = answerEl.classList.contains("hidden");
+  answerEl.classList.toggle("hidden");
+  buttonEl.classList.toggle("open", isHidden);
+}
+
+function injectFaqSchema(faqs) {
+  var existing = document.getElementById("bp-faq-schema");
+  if (existing) existing.remove();
+
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map(function (f) {
+      return {
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: { "@type": "Answer", text: f.answer },
+      };
+    }),
+  };
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-faq-schema";
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
 }
 
 function showError(message) {

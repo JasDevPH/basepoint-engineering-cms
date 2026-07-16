@@ -9,6 +9,13 @@ export interface ProductVariant {
   stock: number;
 }
 
+export interface ProductFaqEntry {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -20,4 +27,5 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   variants: ProductVariant[];
+  faqs: ProductFaqEntry[];
 }

@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   UserCheck,
+  HelpCircle,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -81,6 +82,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Services", path: "/admin/services", icon: Briefcase },
     { label: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { label: "Leads", path: "/admin/leads", icon: UserCheck },
+    { label: "FAQs", path: "/admin/faqs", icon: HelpCircle },
     ...(userRole === "admin"
       ? [{ label: "Users", path: "/admin/users", icon: Users }]
       : []),

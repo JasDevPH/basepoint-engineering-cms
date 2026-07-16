@@ -16,6 +16,11 @@ export async function GET(
         variants: {
           orderBy: [{ capacity: "asc" }, { length: "asc" }],
         },
+        faqs: {
+          where: { enabled: true },
+          orderBy: { order: "asc" },
+          include: { faq: true },
+        },
       },
     });
 
@@ -29,8 +34,15 @@ export async function GET(
       );
     }
 
+    const faqs = product.faqs.map((pf) => ({
+      id: pf.faq.id,
+      question: pf.faq.question,
+      answer: pf.faq.answer,
+      order: pf.order,
+    }));
+
     return NextResponse.json(
-      { success: true, data: product },
+      { success: true, data: { ...product, faqs } },
       { headers: corsHeaders(request.headers.get("origin") || undefined) }
     );
   } catch (error) {

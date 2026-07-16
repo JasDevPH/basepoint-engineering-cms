@@ -47,6 +47,7 @@ model Product {
   
   variants        ProductVariant[]
   orders          Order[]
+  faqs            ProductFaq[]
 }
 
 model ProductVariant {
@@ -130,6 +131,35 @@ model Category {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model Faq {
+  id        String       @id @default(cuid())
+  question  String       @db.Text
+  answer    String       @db.Text
+  category  String?
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  products  ProductFaq[]
+}
+
+model ProductFaq {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  faqId     String
+  faq       Faq      @relation(fields: [faqId], references: [id], onDelete: Cascade)
+
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, faqId])
+  @@index([productId])
+  @@index([faqId])
 }
 
 model Order {

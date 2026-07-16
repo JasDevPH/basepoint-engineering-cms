@@ -30,6 +30,7 @@ import {
   Zap,
   Edit2,
   Check,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
@@ -52,6 +53,22 @@ interface CustomField {
   id: string;
   name: string;
   values: string;
+}
+
+interface Faq {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+  order: number;
+}
+
+interface ProductFaq {
+  id: string;
+  faqId: string;
+  enabled: boolean;
+  order: number;
+  faq: Faq;
 }
 
 interface LemonSqueezyProduct {
@@ -120,6 +137,12 @@ export default function EditProductPage() {
   const [editingPrice, setEditingPrice] = useState<string>("");
   const [savingVariant, setSavingVariant] = useState(false);
   const [editingPreviewLink, setEditingPreviewLink] = useState<Record<string, string>>({});
+
+  // FAQ State
+  const [faqLibrary, setFaqLibrary] = useState<Faq[]>([]);
+  const [productFaqs, setProductFaqs] = useState<ProductFaq[]>([]);
+  const [selectedFaqToAttach, setSelectedFaqToAttach] = useState("");
+  const [attachingFaq, setAttachingFaq] = useState(false);
 
   // Stripe Payment Link State
   const [stripePaymentLink, setStripePaymentLink] = useState("");
@@ -282,13 +305,126 @@ export default function EditProductPage() {
     }
   };
 
+  const fetchFaqLibrary = async () => {
+    try {
+      const res = await fetch("/api/admin/faqs");
+      const data = await res.json();
+      if (data.success) {
+        setFaqLibrary(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching FAQ library:", error);
+    }
+  };
+
+  const fetchProductFaqs = async () => {
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/faqs`);
+      const data = await res.json();
+      if (data.success) {
+        setProductFaqs(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching product FAQs:", error);
+    }
+  };
+
+  const attachFaq = async () => {
+    if (!selectedFaqToAttach) {
+      toast.warning("Please select a FAQ to attach");
+      return;
+    }
+
+    setAttachingFaq(true);
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/faqs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ faqId: selectedFaqToAttach }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProductFaqs((prev) => [...prev, data.data]);
+        setSelectedFaqToAttach("");
+        toast.success("FAQ attached!");
+      } else {
+        toast.error(data.error || "Failed to attach FAQ");
+      }
+    } catch (error) {
+      toast.error("Error attaching FAQ");
+    } finally {
+      setAttachingFaq(false);
+    }
+  };
+
+  const toggleProductFaqEnabled = async (
+    productFaqId: string,
+    currentEnabled: boolean
+  ) => {
+    try {
+      setProductFaqs((prev) =>
+        prev.map((pf) =>
+          pf.id === productFaqId ? { ...pf, enabled: !currentEnabled } : pf
+        )
+      );
+      const res = await fetch(
+        `/api/admin/products/${productId}/faqs/${productFaqId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !currentEnabled }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        setProductFaqs((prev) =>
+          prev.map((pf) =>
+            pf.id === productFaqId ? { ...pf, enabled: currentEnabled } : pf
+          )
+        );
+        toast.error("Failed to update FAQ status");
+      }
+    } catch {
+      toast.error("Error updating FAQ status");
+    }
+  };
+
+  const removeProductFaq = async (productFaqId: string) => {
+    const confirmed = await confirmAction({
+      title: "Remove FAQ",
+      message:
+        "Remove this FAQ from this product? The FAQ itself stays in your library.",
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(
+        `/api/admin/products/${productId}/faqs/${productFaqId}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setProductFaqs((prev) => prev.filter((pf) => pf.id !== productFaqId));
+        toast.success("FAQ removed from product");
+      } else {
+        toast.error("Failed to remove FAQ");
+      }
+    } catch {
+      toast.error("Error removing FAQ");
+    }
+  };
+
   useEffect(() => {
     if (productId) {
       fetchProduct();
       fetchVariants();
+      fetchProductFaqs();
     }
     fetchCategories();
     fetchLemonSqueezyProducts();
+    fetchFaqLibrary();
   }, [productId]);
 
   const startEditPrice = (variant: any) => {
@@ -2233,6 +2369,117 @@ export default function EditProductPage() {
               </div>
             </div>
           )}
+
+          {/* FAQs Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5 text-[#1e3a8a]" />
+                  FAQs
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Attach FAQs from your library to show on this product's
+                  page. Manage the library itself under{" "}
+                  <a
+                    href="/admin/faqs"
+                    target="_blank"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Admin &rarr; FAQs
+                  </a>
+                  .
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {productFaqs.length} attached
+              </span>
+            </div>
+
+            {/* Attach FAQ */}
+            <div className="flex flex-col md:flex-row gap-3 mb-6">
+              <select
+                value={selectedFaqToAttach}
+                onChange={(e) => setSelectedFaqToAttach(e.target.value)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
+              >
+                <option value="">Select a FAQ to attach...</option>
+                {faqLibrary
+                  .filter(
+                    (faq) => !productFaqs.some((pf) => pf.faqId === faq.id)
+                  )
+                  .map((faq) => (
+                    <option key={faq.id} value={faq.id}>
+                      {faq.question}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={attachFaq}
+                disabled={attachingFaq || !selectedFaqToAttach}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {attachingFaq ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                <span>Attach</span>
+              </button>
+            </div>
+
+            {/* Attached FAQs list */}
+            {productFaqs.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 rounded-xl">
+                <HelpCircle className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">
+                  No FAQs attached to this product yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {productFaqs.map((pf) => (
+                  <div
+                    key={pf.id}
+                    className="flex items-start justify-between p-4 bg-white border border-gray-200 rounded-xl"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900">
+                        {pf.faq.question}
+                      </p>
+                      <p className="text-sm text-gray-600 line-clamp-2 mt-1">
+                        {pf.faq.answer}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleProductFaqEnabled(pf.id, pf.enabled !== false)
+                        }
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          pf.enabled !== false
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                        }`}
+                      >
+                        {pf.enabled !== false ? "Enabled" : "Disabled"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProductFaq(pf.id)}
+                        className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Remove from product"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Form Actions */}
           <div className="flex gap-4 pt-4">
