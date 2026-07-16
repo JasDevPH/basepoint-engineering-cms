@@ -2404,14 +2404,31 @@ export default function EditProductPage() {
                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
               >
                 <option value="">Select a FAQ to attach...</option>
-                {faqLibrary
-                  .filter(
-                    (faq) => !productFaqs.some((pf) => pf.faqId === faq.id)
-                  )
-                  .map((faq) => (
-                    <option key={faq.id} value={faq.id}>
-                      {faq.question}
-                    </option>
+                {Object.entries(
+                  faqLibrary
+                    .filter(
+                      (faq) => !productFaqs.some((pf) => pf.faqId === faq.id)
+                    )
+                    .reduce((groups: Record<string, Faq[]>, faq) => {
+                      const label = faq.category || "Uncategorized";
+                      groups[label] = groups[label] || [];
+                      groups[label].push(faq);
+                      return groups;
+                    }, {})
+                )
+                  .sort(([a], [b]) => {
+                    if (a === "Uncategorized") return 1;
+                    if (b === "Uncategorized") return -1;
+                    return a.localeCompare(b);
+                  })
+                  .map(([category, faqsInGroup]) => (
+                    <optgroup key={category} label={category}>
+                      {faqsInGroup.map((faq) => (
+                        <option key={faq.id} value={faq.id}>
+                          {faq.question}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
               </select>
               <button

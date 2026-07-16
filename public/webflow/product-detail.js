@@ -386,6 +386,7 @@ function displayProductDetail(product) {
     titleEl.textContent = product.title;
     titleEl.style.fontFamily = "'Montserrat', sans-serif";
     titleEl.style.fontWeight = "700";
+    titleEl.style.color = "#1D3A89";
   }
 
   const categoryEl = document.querySelector('[data-product-detail="category"]');
@@ -509,7 +510,8 @@ function injectBreadcrumb(productTitle, category) {
 // ── Simple price box ──────────────────────
 function displaySimplePriceBox(product) {
   let html = '<div class="product-configurator">';
-  html += '<h3 class="configurator-title">💰 Product Pricing</h3>';
+  html +=
+    '<h3 class="configurator-title" style="color:#1D3A89">💰 Product Pricing</h3>';
   html +=
     '<div class="variant-price-info" style="display:block;"><div class="price-label">Price:</div><div class="price-amount">CA$' +
     product.basePrice.toFixed(2) +
@@ -602,7 +604,7 @@ function displayProductConfigurator(variants, product) {
   const hasStandardConnection = endConnections.length > 0;
 
   let html =
-    '<div class="product-configurator"><h3 class="configurator-title">🛠️ Let\'s Customize Your Product</h3><div class="configurator-options">';
+    '<div class="product-configurator"><h3 class="configurator-title" style="color:#1D3A89">🛠️ Let\'s Customize Your Product</h3><div class="configurator-options">';
 
   if (hasStandardCapacity) {
     html +=
@@ -908,6 +910,7 @@ function renderProductContentBlocks(blocks) {
             "font-family:'Montserrat',sans-serif;font-weight:" +
             (level === 1 ? "700" : level === 2 ? "600" : "500") +
             ";line-height:1.3;" +
+            (level <= 3 ? "color:#1D3A89;" : "") +
             '">' +
             block.content +
             "</h" +
@@ -1044,7 +1047,7 @@ function displayVariants(variants) {
     (v) => v.price !== null && v.price !== undefined,
   );
   let tableHtml =
-    '<div class="variants-table-container"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;">Available Models</h2><table class="variants-table"><thead><tr><th>Model Number</th>';
+    '<div class="variants-table-container"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;color:#1D3A89;">Available Models</h2><table class="variants-table"><thead><tr><th>Model Number</th>';
   if (hasCapacity) tableHtml += "<th>Capacity</th>";
   if (hasLength) tableHtml += "<th>Length</th>";
   if (hasEndConnection) tableHtml += "<th>End Connection</th>";
@@ -1120,7 +1123,7 @@ function displayVariants(variants) {
   }
   tableHtml += "</div>";
   let cardsHtml =
-    '<div class="variants-cards"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;">Available Models</h2>';
+    '<div class="variants-cards"><h2 style="font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;color:#1D3A89;">Available Models</h2>';
   variants.forEach((v) => {
     cardsHtml +=
       '<div class="variant-card"><div class="variant-card-header">' +
@@ -1171,7 +1174,8 @@ function displayProductFaqs(faqs) {
   if (!faqs || faqs.length === 0) return;
 
   var html = '<div class="product-faqs">';
-  html += '<h2 class="faq-section-title">Frequently Asked Questions</h2>';
+  html +=
+    '<h2 class="faq-section-title" style="color:#1D3A89">Frequently Asked Questions</h2>';
   html += '<div class="faq-list">';
   faqs.forEach(function (f) {
     html += '<div class="faq-item">';
