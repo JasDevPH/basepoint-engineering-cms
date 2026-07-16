@@ -12,6 +12,24 @@ export async function GET(
 
     const blog = await prisma.blog.findUnique({
       where: { slug },
+      include: {
+        products: {
+          where: { enabled: true },
+          orderBy: { order: "asc" },
+          include: {
+            product: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+                imageUrl: true,
+                category: true,
+                basePrice: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!blog) {
@@ -24,8 +42,18 @@ export async function GET(
       );
     }
 
+    const products = blog.products.map((bp) => ({
+      id: bp.product.id,
+      slug: bp.product.slug,
+      title: bp.product.title,
+      imageUrl: bp.product.imageUrl,
+      category: bp.product.category,
+      basePrice: bp.product.basePrice,
+      order: bp.order,
+    }));
+
     return NextResponse.json(
-      { success: true, data: blog },
+      { success: true, data: { ...blog, products } },
       {
         status: 200,
         headers: corsHeaders(request.headers.get("origin") || undefined),

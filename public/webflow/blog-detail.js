@@ -264,6 +264,9 @@ function displayBlogDetail(blog) {
         "</p>";
     }
   }
+
+  if (blog.products && blog.products.length > 0)
+    displayRelatedProducts(blog.products);
 }
 
 // ── Render content blocks ─────────────────
@@ -515,6 +518,66 @@ function injectBlogBreadcrumb(blogTitle) {
     2,
   );
   document.head.appendChild(script);
+}
+
+// ── Related products carousel ─────────────
+function displayRelatedProducts(products) {
+  if (!products || products.length === 0) return;
+
+  var items = products.slice(0, 12);
+
+  var html = '<div class="related-products-section">';
+  html += '<div class="related-products-header">';
+  html += '<h2 class="related-products-title">Related Products</h2>';
+  html += '<div class="related-products-nav">';
+  html +=
+    '<button type="button" class="related-products-arrow" onclick="scrollProductCarousel(-1)" aria-label="Scroll left">‹</button>';
+  html +=
+    '<button type="button" class="related-products-arrow" onclick="scrollProductCarousel(1)" aria-label="Scroll right">›</button>';
+  html += "</div></div>";
+  html += '<div class="related-products-row" id="related-products-row">';
+
+  items.forEach(function (p) {
+    html +=
+      '<a class="related-product-card" href="https://basepointengineering.com/product-detail?slug=' +
+      encodeURIComponent(p.slug) +
+      '">';
+    if (p.imageUrl) {
+      html += '<img src="' + p.imageUrl + '" alt="' + p.title + '">';
+    } else {
+      html +=
+        '<div style="width:100%;height:140px;background:#f3f4f6;"></div>';
+    }
+    html += '<div class="related-product-card-body">';
+    if (p.category) {
+      html +=
+        '<span class="related-product-category">' + p.category + "</span>";
+    }
+    html += '<div class="related-product-title">' + p.title + "</div>";
+    if (p.basePrice != null) {
+      html +=
+        '<div class="related-product-price">CA$' +
+        p.basePrice.toFixed(2) +
+        "</div>";
+    } else {
+      html += '<div class="related-product-price">View Product →</div>';
+    }
+    html += "</div></a>";
+  });
+
+  html +=
+    '<a class="related-product-viewall" href="https://basepointengineering.com/products">View All<br>Products →</a>';
+
+  html += "</div></div>";
+
+  var anchor = document.querySelector('[data-blog-detail="content"]');
+  if (anchor) anchor.insertAdjacentHTML("afterend", html);
+}
+
+function scrollProductCarousel(direction) {
+  var row = document.getElementById("related-products-row");
+  if (!row) return;
+  row.scrollBy({ left: direction * 240, behavior: "smooth" });
 }
 
 // ── Error ─────────────────────────────────

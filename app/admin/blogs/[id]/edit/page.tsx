@@ -5,6 +5,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 import BlockEditor, { ContentBlock } from "@/components/BlockEditor";
 import {
   FileText,
@@ -19,7 +20,27 @@ import {
   Star,
   FileEdit,
   AlertTriangle,
+  Package,
+  Plus,
+  Trash2,
 } from "lucide-react";
+
+interface AdminProduct {
+  id: string;
+  title: string;
+  slug: string;
+  category: string | null;
+  imageUrl: string | null;
+  basePrice: number | null;
+}
+
+interface BlogProduct {
+  id: string;
+  productId: string;
+  enabled: boolean;
+  order: number;
+  product: AdminProduct;
+}
 
 export default function EditBlogPage() {
   const router = useRouter();
@@ -27,6 +48,7 @@ export default function EditBlogPage() {
   const blogId = params.id as string;
 
   const toast = useToast();
+  const confirmAction = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -41,11 +63,130 @@ export default function EditBlogPage() {
   const [featured, setFeatured] = useState(false);
   const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
 
+  // Related Products state
+  const [productLibrary, setProductLibrary] = useState<AdminProduct[]>([]);
+  const [blogProducts, setBlogProducts] = useState<BlogProduct[]>([]);
+  const [selectedProductToAttach, setSelectedProductToAttach] = useState("");
+  const [attachingProduct, setAttachingProduct] = useState(false);
+
   useEffect(() => {
     if (blogId) {
       fetchBlog();
+      fetchBlogProducts();
     }
+    fetchProductLibrary();
   }, [blogId]);
+
+  const fetchProductLibrary = async () => {
+    try {
+      const res = await fetch("/api/admin/products");
+      const data = await res.json();
+      if (data.success) {
+        setProductLibrary(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching product library:", error);
+    }
+  };
+
+  const fetchBlogProducts = async () => {
+    try {
+      const res = await fetch(`/api/admin/blogs/${blogId}/products`);
+      const data = await res.json();
+      if (data.success) {
+        setBlogProducts(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching blog products:", error);
+    }
+  };
+
+  const attachProduct = async () => {
+    if (!selectedProductToAttach) {
+      toast.warning("Please select a product to attach");
+      return;
+    }
+
+    setAttachingProduct(true);
+    try {
+      const res = await fetch(`/api/admin/blogs/${blogId}/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: selectedProductToAttach }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBlogProducts((prev) => [...prev, data.data]);
+        setSelectedProductToAttach("");
+        toast.success("Product attached!");
+      } else {
+        toast.error(data.error || "Failed to attach product");
+      }
+    } catch (error) {
+      toast.error("Error attaching product");
+    } finally {
+      setAttachingProduct(false);
+    }
+  };
+
+  const toggleBlogProductEnabled = async (
+    blogProductId: string,
+    currentEnabled: boolean
+  ) => {
+    try {
+      setBlogProducts((prev) =>
+        prev.map((bp) =>
+          bp.id === blogProductId ? { ...bp, enabled: !currentEnabled } : bp
+        )
+      );
+      const res = await fetch(
+        `/api/admin/blogs/${blogId}/products/${blogProductId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !currentEnabled }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        setBlogProducts((prev) =>
+          prev.map((bp) =>
+            bp.id === blogProductId ? { ...bp, enabled: currentEnabled } : bp
+          )
+        );
+        toast.error("Failed to update product status");
+      }
+    } catch {
+      toast.error("Error updating product status");
+    }
+  };
+
+  const removeProductFromBlog = async (blogProductId: string) => {
+    const confirmed = await confirmAction({
+      title: "Remove Product",
+      message:
+        "Remove this product from this blog post? The product itself is unaffected.",
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(
+        `/api/admin/blogs/${blogId}/products/${blogProductId}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setBlogProducts((prev) => prev.filter((bp) => bp.id !== blogProductId));
+        toast.success("Product removed from blog post");
+      } else {
+        toast.error("Failed to remove product");
+      }
+    } catch {
+      toast.error("Error removing product");
+    }
+  };
 
   const fetchBlog = async () => {
     try {
@@ -435,6 +576,148 @@ export default function EditBlogPage() {
                 </p>
               </div>
             </label>
+          </div>
+
+          {/* Related Products */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#1e3a8a]" />
+                  Related Products
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Attach products to show in a carousel at the bottom of this
+                  blog post, linking readers directly to checkout.
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {blogProducts.length} attached
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-6">
+              Recommended: attach up to ~10-12 products for the best carousel
+              experience on the blog page.
+            </p>
+
+            {/* Attach Product */}
+            <div className="flex flex-col md:flex-row gap-3 mb-6">
+              <select
+                value={selectedProductToAttach}
+                onChange={(e) => setSelectedProductToAttach(e.target.value)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
+              >
+                <option value="">Select a product to attach...</option>
+                {Object.entries(
+                  productLibrary
+                    .filter(
+                      (product) =>
+                        !blogProducts.some(
+                          (bp) => bp.productId === product.id
+                        )
+                    )
+                    .reduce((groups: Record<string, AdminProduct[]>, product) => {
+                      const label = product.category || "Uncategorized";
+                      groups[label] = groups[label] || [];
+                      groups[label].push(product);
+                      return groups;
+                    }, {})
+                )
+                  .sort(([a], [b]) => {
+                    if (a === "Uncategorized") return 1;
+                    if (b === "Uncategorized") return -1;
+                    return a.localeCompare(b);
+                  })
+                  .map(([category, productsInGroup]) => (
+                    <optgroup key={category} label={category}>
+                      {productsInGroup.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={attachProduct}
+                disabled={attachingProduct || !selectedProductToAttach}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {attachingProduct ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                <span>Attach</span>
+              </button>
+            </div>
+
+            {/* Attached Products list */}
+            {blogProducts.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 rounded-xl">
+                <Package className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">
+                  No products attached to this blog post yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {blogProducts.map((bp) => (
+                  <div
+                    key={bp.id}
+                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {bp.product.imageUrl ? (
+                        <img
+                          src={bp.product.imageUrl}
+                          alt={bp.product.title}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {bp.product.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {bp.product.basePrice != null
+                            ? `$${bp.product.basePrice.toFixed(2)}`
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleBlogProductEnabled(bp.id, bp.enabled !== false)
+                        }
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          bp.enabled !== false
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                        }`}
+                      >
+                        {bp.enabled !== false ? "Enabled" : "Disabled"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProductFromBlog(bp.id)}
+                        className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Remove from blog post"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}

@@ -48,6 +48,7 @@ model Product {
   variants        ProductVariant[]
   orders          Order[]
   faqs            ProductFaq[]
+  blogs           BlogProduct[]
 }
 
 model ProductVariant {
@@ -96,6 +97,8 @@ model Blog {
   featured    Boolean  @default(false)
   publishedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  products    BlogProduct[]
 }
 
 model Service {
@@ -160,6 +163,23 @@ model ProductFaq {
   @@unique([productId, faqId])
   @@index([productId])
   @@index([faqId])
+}
+
+model BlogProduct {
+  id        String   @id @default(cuid())
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([blogId, productId])
+  @@index([blogId])
+  @@index([productId])
 }
 
 model Order {
