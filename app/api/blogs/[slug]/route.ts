@@ -42,7 +42,7 @@ export async function GET(
       );
     }
 
-    const products = blog.products.map((bp) => ({
+    let products = blog.products.map((bp) => ({
       id: bp.product.id,
       slug: bp.product.slug,
       title: bp.product.title,
@@ -51,6 +51,25 @@ export async function GET(
       basePrice: bp.product.basePrice,
       order: bp.order,
     }));
+
+    // No products curated (or all disabled) — fall back to a random sample
+    // so the carousel never renders empty just because an admin forgot to set it up.
+    if (products.length === 0) {
+      const randomPool = await prisma.product.findMany({
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          imageUrl: true,
+          category: true,
+          basePrice: true,
+        },
+      });
+      products = randomPool
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 6)
+        .map((p, i) => ({ ...p, order: i }));
+    }
 
     return NextResponse.json(
       { success: true, data: { ...blog, products } },
