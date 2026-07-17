@@ -542,12 +542,16 @@ function displayRelatedProducts(products) {
       '<a class="related-product-card" href="https://basepointengineering.com/product-detail?slug=' +
       encodeURIComponent(p.slug) +
       '">';
+    html += '<div class="related-product-image-wrap">';
     if (p.imageUrl) {
       html += '<img src="' + p.imageUrl + '" alt="' + p.title + '">';
     } else {
       html +=
         '<div style="width:100%;height:140px;background:#f3f4f6;"></div>';
     }
+    html +=
+      '<span class="related-product-drawing-badge">📐 Technical Drawing</span>';
+    html += "</div>";
     html += '<div class="related-product-card-body">';
     if (p.category) {
       html +=
