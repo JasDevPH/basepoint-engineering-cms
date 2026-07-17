@@ -16,6 +16,7 @@ import {
   X,
   UserCheck,
   HelpCircle,
+  Share2,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -83,6 +84,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: "Orders", path: "/admin/orders", icon: ShoppingCart },
     { label: "Leads", path: "/admin/leads", icon: UserCheck },
     { label: "FAQs", path: "/admin/faqs", icon: HelpCircle },
+    { label: "Link Generator", path: "/admin/link-generator", icon: Share2 },
     ...(userRole === "admin"
       ? [{ label: "Users", path: "/admin/users", icon: Users }]
       : []),
