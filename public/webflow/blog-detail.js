@@ -549,14 +549,14 @@ function displayRelatedProducts(products) {
       html +=
         '<div style="width:100%;height:140px;background:#f3f4f6;"></div>';
     }
-    html +=
-      '<span class="related-product-drawing-badge">📐 Technical Drawing</span>';
     html += "</div>";
     html += '<div class="related-product-card-body">';
     if (p.category) {
       html +=
         '<span class="related-product-category">' + p.category + "</span>";
     }
+    html +=
+      '<span class="related-product-drawing-badge">Technical Drawing</span>';
     html += '<div class="related-product-title">' + p.title + "</div>";
     if (p.basePrice != null) {
       html +=
