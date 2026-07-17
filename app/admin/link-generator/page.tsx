@@ -42,6 +42,11 @@ export default function LinkGeneratorPage() {
   const [selectedSlug, setSelectedSlug] = useState("");
   const [customUrl, setCustomUrl] = useState("");
 
+  const [selectedPlatform, setSelectedPlatform] = useState<
+    "linkedin" | "facebook" | "custom" | ""
+  >("");
+  const [trafficType, setTrafficType] = useState<"organic" | "paid" | "">("");
+
   const [utmSource, setUtmSource] = useState("");
   const [utmMedium, setUtmMedium] = useState("");
   const [utmCampaign, setUtmCampaign] = useState("");
@@ -81,9 +86,30 @@ export default function LinkGeneratorPage() {
         }?slug=${selectedItem.slug}`
       : "";
 
-  const applyPreset = (source: string, medium: string) => {
-    setUtmSource(source);
-    setUtmMedium(medium);
+  const recomputeSourceMedium = (
+    platform: "linkedin" | "facebook" | "custom" | "",
+    type: "organic" | "paid" | ""
+  ) => {
+    const isSocial = platform === "linkedin" || platform === "facebook";
+    setUtmSource(isSocial ? platform : "");
+
+    if (!type) {
+      setUtmMedium("");
+    } else if (isSocial) {
+      setUtmMedium(type === "paid" ? "paid-social" : "social");
+    } else {
+      setUtmMedium(type === "paid" ? "paid" : "");
+    }
+  };
+
+  const selectPlatform = (platform: "linkedin" | "facebook" | "custom") => {
+    setSelectedPlatform(platform);
+    recomputeSourceMedium(platform, trafficType);
+  };
+
+  const selectTrafficType = (type: "organic" | "paid") => {
+    setTrafficType(type);
+    recomputeSourceMedium(selectedPlatform, type);
   };
 
   const generatedUrl = (() => {
@@ -208,26 +234,73 @@ export default function LinkGeneratorPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => applyPreset("linkedin", "social")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                    onClick={() => selectPlatform("linkedin")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPlatform === "linkedin"
+                        ? "bg-blue-600 text-white"
+                        : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    }`}
                   >
                     LinkedIn
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyPreset("facebook", "social")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                    onClick={() => selectPlatform("facebook")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPlatform === "facebook"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                    }`}
                   >
                     Facebook
                   </button>
                   <button
                     type="button"
-                    onClick={() => applyPreset("", "")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                    onClick={() => selectPlatform("custom")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPlatform === "custom"
+                        ? "bg-gray-700 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   >
                     Custom
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium text-sm text-gray-700">
+                  Is this paid or organic?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => selectTrafficType("organic")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      trafficType === "organic"
+                        ? "bg-green-600 text-white"
+                        : "bg-green-50 text-green-700 hover:bg-green-100"
+                    }`}
+                  >
+                    Organic
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectTrafficType("paid")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      trafficType === "paid"
+                        ? "bg-amber-600 text-white"
+                        : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                    }`}
+                  >
+                    Paid
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Sets utm_medium to "social" (organic) or "paid-social" (paid)
+                  for LinkedIn/Facebook, so GA4 reports them under the correct
+                  Organic Social / Paid Social channel.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
