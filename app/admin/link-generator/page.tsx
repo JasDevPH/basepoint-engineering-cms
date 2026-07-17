@@ -123,10 +123,25 @@ export default function LinkGeneratorPage() {
     }
   };
 
+  const resetUtmFields = () => {
+    setSelectedPlatform("");
+    setTrafficType("");
+    setUtmSource("");
+    setUtmMedium("");
+    setUtmCampaign("");
+    setUtmContent("");
+  };
+
   const handleTabChange = (type: PageType) => {
     setActiveType(type);
     setSelectedSlug("");
     setCustomUrl("");
+    resetUtmFields();
+  };
+
+  const handleSelectItem = (slug: string) => {
+    setSelectedSlug(slug);
+    resetUtmFields();
   };
 
   return (
@@ -196,7 +211,7 @@ export default function LinkGeneratorPage() {
               ) : (
                 <select
                   value={selectedSlug}
-                  onChange={(e) => setSelectedSlug(e.target.value)}
+                  onChange={(e) => handleSelectItem(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
                 >
                   <option value="">Select...</option>
