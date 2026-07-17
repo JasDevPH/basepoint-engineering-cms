@@ -86,30 +86,16 @@ export default function LinkGeneratorPage() {
         }?slug=${selectedItem.slug}`
       : "";
 
-  const recomputeSourceMedium = (
-    platform: "linkedin" | "facebook" | "custom" | "",
-    type: "organic" | "paid" | ""
-  ) => {
-    const isSocial = platform === "linkedin" || platform === "facebook";
-    setUtmSource(isSocial ? platform : "");
-
-    if (!type) {
-      setUtmMedium("");
-    } else if (isSocial) {
-      setUtmMedium(type === "paid" ? "paid-social" : "social");
-    } else {
-      setUtmMedium(type === "paid" ? "paid" : "");
-    }
-  };
-
   const selectPlatform = (platform: "linkedin" | "facebook" | "custom") => {
     setSelectedPlatform(platform);
-    recomputeSourceMedium(platform, trafficType);
+    const isSocial = platform === "linkedin" || platform === "facebook";
+    setUtmSource(isSocial ? platform : "");
   };
 
   const selectTrafficType = (type: "organic" | "paid") => {
     setTrafficType(type);
-    recomputeSourceMedium(selectedPlatform, type);
+    // Always populates immediately on click, regardless of platform selection.
+    setUtmMedium(type === "paid" ? "paid-social" : "social");
   };
 
   const generatedUrl = (() => {
