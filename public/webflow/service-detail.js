@@ -272,6 +272,13 @@ function displayServiceDetail(service) {
       }
     }, 100);
   }
+
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: "view_service",
+    service_title: service.title,
+    service_slug: getSlugFromURL(),
+  });
 }
 
 // ── Render content blocks ─────────────────

@@ -267,6 +267,14 @@ function displayBlogDetail(blog) {
 
   if (blog.products && blog.products.length > 0)
     displayRelatedProducts(blog.products);
+
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: "view_blog_post",
+    blog_title: blog.title,
+    blog_slug: blog.slug,
+    blog_author: blog.author || undefined,
+  });
 }
 
 // ── Render content blocks ─────────────────
@@ -581,7 +589,7 @@ function displayRelatedProducts(products) {
 function scrollProductCarousel(direction) {
   var row = document.getElementById("related-products-row");
   if (!row) return;
-  row.scrollBy({ left: direction * 240, behavior: "smooth" });
+  row.scrollBy({ left: direction * 276, behavior: "smooth" });
 }
 
 // ── Error ─────────────────────────────────

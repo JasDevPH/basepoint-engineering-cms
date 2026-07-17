@@ -435,6 +435,22 @@ function displayProductDetail(product) {
     displayVariants(allVariants);
 
   if (product.faqs && product.faqs.length > 0) displayProductFaqs(product.faqs);
+
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ ecommerce: null });
+  window.dataLayer.push({
+    event: "view_item",
+    ecommerce: {
+      items: [
+        {
+          item_id: product.slug,
+          item_name: product.title,
+          item_category: product.category || undefined,
+          price: product.basePrice || undefined,
+        },
+      ],
+    },
+  });
 }
 
 // ── Breadcrumb ────────────────────────────
