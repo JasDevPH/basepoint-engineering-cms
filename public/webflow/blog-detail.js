@@ -132,6 +132,17 @@ function clearSkeletons() {
 // ── Google Fonts ──────────────────────────
 function loadGoogleFonts() {
   if (!document.querySelector("#google-fonts-link")) {
+    ["https://fonts.googleapis.com", "https://fonts.gstatic.com"].forEach(
+      function (origin) {
+        if (document.querySelector('link[rel="preconnect"][href="' + origin + '"]'))
+          return;
+        const preconnect = document.createElement("link");
+        preconnect.rel = "preconnect";
+        preconnect.href = origin;
+        if (origin.indexOf("gstatic") !== -1) preconnect.crossOrigin = "anonymous";
+        document.head.appendChild(preconnect);
+      }
+    );
     const link = document.createElement("link");
     link.id = "google-fonts-link";
     link.rel = "stylesheet";
@@ -149,7 +160,7 @@ function getSlugFromURL() {
 window.prerenderReady = false;
 setTimeout(function () {
   window.prerenderReady = true;
-}, 8000);
+}, 5000);
 
 // ── Load blog detail ──────────────────────
 async function loadBlogDetail() {
@@ -245,8 +256,17 @@ function displayBlogDetail(blog) {
   const imgEl = document.querySelector('[data-blog-detail="image"]');
   if (imgEl && blog.imageUrl) {
     imgEl.style.cssText = "";
-    imgEl.src = blog.imageUrl + "?t=" + new Date().getTime();
+    // Versioned by updatedAt, not Date.now() — allows real caching between
+    // repeat visits instead of refetching the image on every page load.
+    imgEl.src =
+      blog.imageUrl +
+      (blog.updatedAt ? "?v=" + new Date(blog.updatedAt).getTime() : "");
     imgEl.alt = blog.title;
+    // Above-the-fold hero image — eager/high-priority, not lazy.
+    imgEl.loading = "eager";
+    imgEl.setAttribute("fetchpriority", "high");
+    imgEl.width = 1200;
+    imgEl.height = window.innerWidth <= 768 ? 260 : 420;
     imgEl.style.width = "100%";
     imgEl.style.height = window.innerWidth <= 768 ? "260px" : "420px";
     imgEl.style.objectFit = "cover";
@@ -616,7 +636,12 @@ function displayRelatedProducts(products) {
       '">';
     html += '<div class="related-product-image-wrap">';
     if (p.imageUrl) {
-      html += '<img src="' + p.imageUrl + '" alt="' + p.title + '">';
+      html +=
+        '<img src="' +
+        p.imageUrl +
+        '" alt="' +
+        p.title +
+        '" width="276" height="140" loading="lazy">';
     } else {
       html +=
         '<div style="width:100%;height:140px;background:#f3f4f6;"></div>';

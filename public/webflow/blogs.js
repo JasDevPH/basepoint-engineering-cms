@@ -120,7 +120,7 @@ async function injectBlogSchema() {
 window.prerenderReady = false;
 setTimeout(function () {
   window.prerenderReady = true;
-}, 8000);
+}, 5000);
 
 // ── Init ───────────────────────────────────
 function initBlogsPage() {

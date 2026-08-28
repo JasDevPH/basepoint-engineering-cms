@@ -213,7 +213,7 @@ function displayServices(services) {
 window.prerenderReady = false;
 setTimeout(function () {
   window.prerenderReady = true;
-}, 8000);
+}, 5000);
 
 // ── Init ───────────────────────────────────
 injectBreadcrumb();

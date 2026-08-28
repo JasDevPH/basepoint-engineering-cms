@@ -205,6 +205,19 @@ function clearBreadcrumbSkel() {
 // ── Google Fonts ──────────────────────────
 function loadGoogleFonts() {
   if (!document.querySelector("#google-fonts-link")) {
+    // Preconnect first so the DNS/TLS handshake overlaps with the rest of
+    // the page's requests instead of blocking behind the stylesheet fetch.
+    ["https://fonts.googleapis.com", "https://fonts.gstatic.com"].forEach(
+      function (origin) {
+        if (document.querySelector('link[rel="preconnect"][href="' + origin + '"]'))
+          return;
+        const preconnect = document.createElement("link");
+        preconnect.rel = "preconnect";
+        preconnect.href = origin;
+        if (origin.indexOf("gstatic") !== -1) preconnect.crossOrigin = "anonymous";
+        document.head.appendChild(preconnect);
+      }
+    );
     const link = document.createElement("link");
     link.id = "google-fonts-link";
     link.rel = "stylesheet";
@@ -316,7 +329,7 @@ function toggleCategory(element) {
 window.prerenderReady = false;
 setTimeout(function () {
   window.prerenderReady = true;
-}, 8000);
+}, 5000);
 
 // ── Load product detail ───────────────────
 async function loadProductDetail() {
@@ -431,9 +444,21 @@ function displayProductDetail(product) {
   const imgEl = document.querySelector('[data-product-detail="image"]');
   if (imgEl && product.imageUrl) {
     imgEl.style.cssText = "";
-    imgEl.src = product.imageUrl + "?t=" + new Date().getTime();
+    // Versioned by updatedAt (changes only when the admin actually edits the
+    // image), not Date.now() — lets the browser/CDN cache the image across
+    // repeat visits instead of refetching on every single page load.
+    imgEl.src =
+      product.imageUrl +
+      (product.updatedAt ? "?v=" + new Date(product.updatedAt).getTime() : "");
     imgEl.alt = product.title;
+    // This is the primary above-the-fold image — eager/high-priority, not
+    // lazy (lazy-loading the LCP element delays LCP, the opposite of the goal).
+    imgEl.loading = "eager";
+    imgEl.setAttribute("fetchpriority", "high");
+    imgEl.width = 800;
+    imgEl.height = 450;
     imgEl.style.height = "auto";
+    imgEl.style.aspectRatio = "800 / 450";
     imgEl.style.objectFit = "cover";
     imgEl.style.borderRadius = "8px";
     imgEl.style.width =
@@ -543,23 +568,27 @@ function displayRelatedBlogs(blogs) {
     html +=
       '<a href="/blog-detail?slug=' +
       b.slug +
-      '" class="related-blog-card" style="display:block;text-decoration:none;color:inherit;">';
-    if (b.imageUrl)
-      html +=
-        '<img src="' +
-        b.imageUrl +
-        '" alt="' +
-        b.title +
-        '" style="width:100%;height:160px;object-fit:cover;border-radius:8px;margin-bottom:0.5rem;" />';
+      '" class="related-blog-card" style="display:flex;align-items:center;gap:1rem;text-decoration:none;color:inherit;padding:1rem 0;border-bottom:1px solid #e5e7eb;">';
+    html += '<div style="flex:1;min-width:0;">';
     html +=
       '<div style="font-family:\'Montserrat\',sans-serif;font-weight:600;color:#1D3A89;">' +
       b.title +
       "</div>";
     if (b.excerpt)
       html +=
-        '<div style="font-family:\'Open Sans\',sans-serif;color:#6b7280;font-size:0.875rem;">' +
+        '<div style="font-family:\'Open Sans\',sans-serif;color:#6b7280;font-size:0.875rem;margin-top:0.25rem;">' +
         b.excerpt +
         "</div>";
+    html +=
+      '<span style="display:inline-block;margin-top:0.5rem;font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:0.8125rem;color:#00bcd4;">Read More &rarr;</span>';
+    html += "</div>";
+    if (b.imageUrl)
+      html +=
+        '<img src="' +
+        b.imageUrl +
+        '" alt="' +
+        b.title +
+        '" width="120" height="120" loading="lazy" style="width:120px;height:120px;object-fit:cover;border-radius:8px;flex-shrink:0;" />';
     html += "</a>";
   });
   html += "</div></div>";

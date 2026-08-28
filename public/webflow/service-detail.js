@@ -99,6 +99,17 @@ function showSkeleton() {
 // ── Google Fonts ──────────────────────────
 function loadGoogleFonts() {
   if (!document.querySelector("#google-fonts-link")) {
+    ["https://fonts.googleapis.com", "https://fonts.gstatic.com"].forEach(
+      function (origin) {
+        if (document.querySelector('link[rel="preconnect"][href="' + origin + '"]'))
+          return;
+        const preconnect = document.createElement("link");
+        preconnect.rel = "preconnect";
+        preconnect.href = origin;
+        if (origin.indexOf("gstatic") !== -1) preconnect.crossOrigin = "anonymous";
+        document.head.appendChild(preconnect);
+      }
+    );
     const link = document.createElement("link");
     link.id = "google-fonts-link";
     link.rel = "stylesheet";
@@ -182,7 +193,7 @@ function displaySideNavigation(services, currentSlug) {
 window.prerenderReady = false;
 setTimeout(function () {
   window.prerenderReady = true;
-}, 8000);
+}, 5000);
 
 // ── Load service detail ───────────────────
 async function loadServiceDetail() {
