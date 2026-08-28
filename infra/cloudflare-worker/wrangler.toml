@@ -1,13 +1,15 @@
-name = "basepoint-bot-prerender"
+name = "bp-bot-prerender-v2"
 main = "bot-prerender-worker.js"
 compatibility_date = "2026-08-28"
 
-# Bind this Worker to the live domain once DNS is proxied through Cloudflare.
-# Route pattern intentionally excludes /cms.* / API subdomains — this Worker
-# only needs to intercept the Webflow-hosted marketing/content pages.
+# Catch-all route (not basepointengineering.com/*) — this zone is an
+# Orange-to-Orange setup (Webflow's origin is itself behind its own Cloudflare
+# account), and Cloudflare has a known bug where specific-hostname Route
+# patterns silently fail to dispatch on O2O zones; only catch-all patterns
+# reliably match. Hostname scoping is done in bot-prerender-worker.js instead.
+# See: https://github.com/cloudflare/workers-sdk/issues/11270
 routes = [
-  { pattern = "basepointengineering.com/*", zone_name = "basepointengineering.com" },
-  { pattern = "www.basepointengineering.com/*", zone_name = "basepointengineering.com" },
+  { pattern = "*basepointengineering.com/*", zone_name = "basepointengineering.com" },
 ]
 
 # Set with: wrangler secret put PRERENDER_TOKEN

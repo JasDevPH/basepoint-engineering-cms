@@ -11,7 +11,11 @@ Allow: /
 Sitemap: https://www.basepointengineering.com/sitemap.xml
 
 # ── Crawl budget: disallow low-value paths ─
-Disallow: /cdn-cgi/
+# Note: /cdn-cgi/ intentionally NOT disallowed — it's Cloudflare's own
+# internal system path (email obfuscation script, etc.), referenced by
+# <script> tags on pages that ARE crawled. Blocking it doesn't save crawl
+# budget (Google never discovers it as a standalone page) and only prevents
+# those pages from rendering fully.
 Disallow: /assets/
 Disallow: /*?utm_source=
 Disallow: /*?utm_medium=

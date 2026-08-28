@@ -6,12 +6,26 @@
 // in front of it is at the DNS/edge layer.
 //
 // Deployment (outside this repo): proxy the domain's DNS through Cloudflare,
-// bind this Worker to a Route matching basepointengineering.com/*, and set
-// the PRERENDER_TOKEN secret via `wrangler secret put PRERENDER_TOKEN`.
+// bind this Worker to a Route, and set the PRERENDER_TOKEN secret via
+// `wrangler secret put PRERENDER_TOKEN`.
+//
+// The Route is bound as a catch-all (*/*) rather than basepointengineering.com/*
+// because this zone is an Orange-to-Orange (O2O) setup — the apex origin
+// (Webflow) is itself behind its own separate Cloudflare account, and
+// Cloudflare has a known, currently-open bug where specific-hostname Route
+// patterns silently fail to dispatch on O2O zones (only catch-all patterns
+// reliably match: https://github.com/cloudflare/workers-sdk/issues/11270).
+// Hostname scoping is therefore done here in code instead of via the Route,
+// so the Worker still only acts on the intended hosts.
 //
 // Snapshot correctness depends on public/webflow/*.js setting
 // window.prerenderReady = true once content/meta/JSON-LD are in the DOM —
 // see the readiness contract added to each detail/listing script.
+
+const HANDLED_HOSTNAMES = new Set([
+  "basepointengineering.com",
+  "www.basepointengineering.com",
+]);
 
 const PRERENDER_SERVICE_URL = "https://service.prerender.io/";
 
@@ -28,6 +42,14 @@ const IGNORED_EXTENSIONS =
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // The Route is a zone-wide catch-all (O2O workaround — see header comment),
+    // so unrelated hostnames on this zone (mail/Teams CNAMEs, the CMS API
+    // subdomain, etc.) must be explicitly passed through untouched here.
+    if (!HANDLED_HOSTNAMES.has(url.hostname)) {
+      return fetch(request);
+    }
+
     const ua = request.headers.get("User-Agent") || "";
     const isBot =
       BOT_UA_REGEX.test(ua) || url.searchParams.has("_escaped_fragment_");
