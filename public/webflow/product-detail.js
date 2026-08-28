@@ -310,11 +310,20 @@ function toggleCategory(element) {
   }
 }
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+// A bot-facing prerender snapshot must wait for this flag before capturing
+// the page's HTML, otherwise crawlers only ever see the skeleton.
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Load product detail ───────────────────
 async function loadProductDetail() {
   const slug = getSlugFromURL();
   if (!slug) {
     showError("No product specified");
+    window.prerenderReady = true;
     return;
   }
 
@@ -326,13 +335,15 @@ async function loadProductDetail() {
     const data = await response.json();
     if (data.success) {
       displayProductDetail(data.data);
-      loadSideNavigation(slug);
+      await loadSideNavigation(slug);
     } else {
       showError("Product not found");
     }
   } catch (error) {
     console.error("Error loading product:", error);
     showError("Failed to load product");
+  } finally {
+    window.prerenderReady = true;
   }
 }
 
@@ -344,7 +355,8 @@ function displayProductDetail(product) {
     return v.enabled !== false;
   });
 
-  document.title = product.title + " - Basepoint Engineering";
+  const pageTitle = product.metaTitle || product.title;
+  document.title = pageTitle + " - Basepoint Engineering";
 
   let metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
@@ -353,6 +365,7 @@ function displayProductDetail(product) {
     document.head.appendChild(metaDesc);
   }
   metaDesc.content =
+    product.metaDescription ||
     product.excerpt ||
     (product.description
       ? product.description
@@ -365,8 +378,8 @@ function displayProductDetail(product) {
       (product.category || "") +
       " | Basepoint Engineering.";
 
-  setMetaTag("og:title", product.title + " - Basepoint Engineering");
-  setMetaTag("twitter:title", product.title + " - Basepoint Engineering");
+  setMetaTag("og:title", pageTitle + " - Basepoint Engineering");
+  setMetaTag("twitter:title", pageTitle + " - Basepoint Engineering");
   setMetaTag("og:description", metaDesc.content);
   setMetaTag("twitter:description", metaDesc.content);
   setMetaTag("og:url", window.location.href);
@@ -376,6 +389,25 @@ function displayProductDetail(product) {
     setMetaTag("og:image", product.imageUrl);
     setMetaTag("twitter:image", product.imageUrl);
   }
+
+  // Canonical tag — honor an editor-set override, else the computed slug URL.
+  // Built here (not at parse time) since canonicalPath is only known once
+  // the product data has loaded.
+  (function () {
+    const canonicalUrl = product.canonicalPath
+      ? "https://basepointengineering.com" + product.canonicalPath
+      : "https://basepointengineering.com/product-detail?slug=" +
+        getSlugFromURL();
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonicalUrl);
+  })();
+
+  injectProductSchema(product);
 
   // Clear breadcrumb skeleton and inject real breadcrumb
   clearBreadcrumbSkel();
@@ -436,6 +468,9 @@ function displayProductDetail(product) {
 
   if (product.faqs && product.faqs.length > 0) displayProductFaqs(product.faqs);
 
+  if (product.blogs && product.blogs.length > 0)
+    displayRelatedBlogs(product.blogs);
+
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ ecommerce: null });
   window.dataLayer.push({
@@ -451,6 +486,88 @@ function displayProductDetail(product) {
       ],
     },
   });
+}
+
+// ── Product schema ─────────────────────────
+function injectProductSchema(product) {
+  var existing = document.getElementById("bp-product-schema");
+  if (existing) existing.remove();
+
+  var regionNames = {
+    CA: "Canada",
+    US: "United States",
+  };
+
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description:
+      product.metaDescription ||
+      product.excerpt ||
+      (product.description
+        ? product.description.replace(/<[^>]*>/g, "").substring(0, 300)
+        : undefined),
+    sku: product.slug,
+    image: product.imageUrl || undefined,
+    brand: { "@type": "Brand", name: "Basepoint Engineering" },
+    areaServed: (product.regions || []).map(function (r) {
+      return { "@type": "Country", name: regionNames[r] || r };
+    }),
+    offers: product.basePrice
+      ? {
+          "@type": "Offer",
+          price: product.basePrice.toFixed(2),
+          priceCurrency: "CAD",
+          availability: "https://schema.org/InStock",
+        }
+      : undefined,
+  };
+
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-product-schema";
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+}
+
+// ── Related blog posts ────────────────────
+function displayRelatedBlogs(blogs) {
+  if (!blogs || blogs.length === 0) return;
+
+  var html = '<div class="product-related-blogs">';
+  html +=
+    '<h2 class="related-blogs-title" style="color:#1D3A89;font-family:\'Montserrat\',sans-serif;font-weight:600;font-size:1.5rem;margin-bottom:1rem;">Related Articles</h2>';
+  html += '<div class="related-blogs-list">';
+  blogs.forEach(function (b) {
+    html +=
+      '<a href="/blog-detail?slug=' +
+      b.slug +
+      '" class="related-blog-card" style="display:block;text-decoration:none;color:inherit;">';
+    if (b.imageUrl)
+      html +=
+        '<img src="' +
+        b.imageUrl +
+        '" alt="' +
+        b.title +
+        '" style="width:100%;height:160px;object-fit:cover;border-radius:8px;margin-bottom:0.5rem;" />';
+    html +=
+      '<div style="font-family:\'Montserrat\',sans-serif;font-weight:600;color:#1D3A89;">' +
+      b.title +
+      "</div>";
+    if (b.excerpt)
+      html +=
+        '<div style="font-family:\'Open Sans\',sans-serif;color:#6b7280;font-size:0.875rem;">' +
+        b.excerpt +
+        "</div>";
+    html += "</a>";
+  });
+  html += "</div></div>";
+
+  var anchor =
+    document.querySelector('[data-product-detail="variants-table"]') ||
+    document.querySelector('[data-product-detail="content"]');
+  if (anchor) anchor.insertAdjacentHTML("afterend", html);
 }
 
 // ── Breadcrumb ────────────────────────────
@@ -1338,22 +1455,6 @@ function showPreviewSuccessModal(name) {
     if (e.target === popup) popup.remove();
   };
 }
-
-// ── Canonical ─────────────────────────────
-(function () {
-  const productSlug = new URLSearchParams(window.location.search).get("slug");
-  if (productSlug) {
-    const canonicalUrl =
-      "https://basepointengineering.com/product-detail?slug=" + productSlug;
-    let link = document.querySelector("link[rel='canonical']");
-    if (!link) {
-      link = document.createElement("link");
-      link.setAttribute("rel", "canonical");
-      document.head.appendChild(link);
-    }
-    link.setAttribute("href", canonicalUrl);
-  }
-})();
 
 // ── Init ──────────────────────────────────
 loadGoogleFonts();

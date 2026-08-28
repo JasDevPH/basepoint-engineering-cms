@@ -116,11 +116,20 @@ async function injectBlogSchema() {
   }
 }
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Init ───────────────────────────────────
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    injectBlogSchema();
+function initBlogsPage() {
+  injectBlogSchema().finally(function () {
+    window.prerenderReady = true;
   });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBlogsPage);
 } else {
-  injectBlogSchema();
+  initBlogsPage();
 }

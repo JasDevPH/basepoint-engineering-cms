@@ -178,11 +178,18 @@ function displaySideNavigation(services, currentSlug) {
 // No resize listener needed since both navs are always in DOM
 // CSS shows/hides them based on breakpoint
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Load service detail ───────────────────
 async function loadServiceDetail() {
   const slug = getSlugFromURL();
   if (!slug) {
     showError("No service specified");
+    window.prerenderReady = true;
     return;
   }
 
@@ -197,19 +204,22 @@ async function loadServiceDetail() {
 
     if (data.success) {
       displayServiceDetail(data.data);
-      loadSideNavigation(slug);
+      await loadSideNavigation(slug);
     } else {
       showError("Service not found");
     }
   } catch (error) {
     console.error("Error loading service:", error);
     showError("Failed to load service");
+  } finally {
+    window.prerenderReady = true;
   }
 }
 
 // ── Display service ───────────────────────
 function displayServiceDetail(service) {
-  document.title = service.title + " - Basepoint Engineering";
+  const pageTitle = service.metaTitle || service.title;
+  document.title = pageTitle + " - Basepoint Engineering";
 
   let metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
@@ -218,17 +228,34 @@ function displayServiceDetail(service) {
     document.head.appendChild(metaDesc);
   }
   metaDesc.content =
+    service.metaDescription ||
     service.excerpt ||
     service.title +
       " — Basepoint Engineering services for below-the-hook lifting devices, CWB welding, structural inspection, and custom engineering.";
 
-  setMetaTag("og:title", service.title + " - Basepoint Engineering");
-  setMetaTag("twitter:title", service.title + " - Basepoint Engineering");
+  setMetaTag("og:title", pageTitle + " - Basepoint Engineering");
+  setMetaTag("twitter:title", pageTitle + " - Basepoint Engineering");
   setMetaTag("og:description", metaDesc.content);
   setMetaTag("twitter:description", metaDesc.content);
   setMetaTag("og:url", window.location.href);
   setMetaTag("og:type", "website");
 
+  // Canonical tag — honor an editor-set override, else the computed slug URL.
+  (function () {
+    const canonicalUrl = service.canonicalPath
+      ? "https://basepointengineering.com" + service.canonicalPath
+      : "https://basepointengineering.com/service-detail?slug=" +
+        getSlugFromURL();
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonicalUrl);
+  })();
+
+  injectServiceSchema(service);
   injectServiceBreadcrumb(service.title);
 
   const titleEl = document.querySelector('[data-service="title"]');
@@ -446,6 +473,40 @@ function renderServiceContentBlocks(blocks) {
     .join("");
 }
 
+// ── Service schema ─────────────────────────
+function injectServiceSchema(service) {
+  var existing = document.getElementById("bp-service-schema");
+  if (existing) existing.remove();
+
+  var regionNames = {
+    CA: "Canada",
+    US: "United States",
+  };
+
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: service.title,
+    description:
+      service.metaDescription ||
+      service.excerpt ||
+      service.title + " — Basepoint Engineering",
+    provider: {
+      "@type": "Organization",
+      name: "Basepoint Engineering",
+    },
+    areaServed: (service.regions || []).map(function (r) {
+      return { "@type": "Country", name: regionNames[r] || r };
+    }),
+  };
+
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-service-schema";
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+}
+
 // ── Breadcrumb ────────────────────────────
 function injectServiceBreadcrumb(serviceTitle) {
   const target = document.querySelector('[data-service="breadcrumb"]');
@@ -513,22 +574,6 @@ function showError(message) {
       '<a href="/" style="color:#3b82f6;text-decoration:underline;">← Back to Home</a></div>';
   }
 }
-
-// ── Canonical ─────────────────────────────
-(function () {
-  const slug = new URLSearchParams(window.location.search).get("slug");
-  if (slug) {
-    const canonicalUrl =
-      "https://basepointengineering.com/service-detail?slug=" + slug;
-    let link = document.querySelector("link[rel='canonical']");
-    if (!link) {
-      link = document.createElement("link");
-      link.setAttribute("rel", "canonical");
-      document.head.appendChild(link);
-    }
-    link.setAttribute("href", canonicalUrl);
-  }
-})();
 
 // ── Init ──────────────────────────────────
 loadGoogleFonts();

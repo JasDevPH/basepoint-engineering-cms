@@ -200,6 +200,10 @@ export async function POST(request: NextRequest) {
       customFields,
       lemonSqueezyProductId,
       stripePaymentLink, // 🆕 ADD
+      metaTitle,
+      metaDescription,
+      canonicalPath,
+      regions,
     } = body;
 
     if (!title || !slug) {
@@ -239,6 +243,10 @@ export async function POST(request: NextRequest) {
         lemonSqueezyStatus: lemonSqueezyProductId ? "published" : "draft",
         syncedAt: lemonSqueezyProductId ? new Date() : null,
         stripePaymentLink: stripePaymentLink || null, // 🆕 ADD
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+        canonicalPath: canonicalPath || null,
+        regions: Array.isArray(regions) ? regions : [],
       },
     });
 

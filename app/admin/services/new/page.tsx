@@ -10,6 +10,7 @@ import IconPicker from "@/components/IconPicker";
 import ServiceBlockEditor, {
   ServiceContentBlock,
 } from "@/components/ServiceBlockEditor";
+import SeoFieldsSection from "@/components/SeoFieldsSection";
 import {
   Briefcase,
   Save,
@@ -39,6 +40,11 @@ export default function NewServicePage() {
   const [contentBlocks, setContentBlocks] = useState<ServiceContentBlock[]>([]);
 
   const [showIconPicker, setShowIconPicker] = useState(false);
+
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalPath, setCanonicalPath] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
 
   // Auto-generate slug from title
   const generateSlug = (text: string) => {
@@ -80,6 +86,10 @@ export default function NewServicePage() {
           order: order ? parseInt(order) : null,
           published,
           contentBlocks,
+          metaTitle: metaTitle || null,
+          metaDescription: metaDescription || null,
+          canonicalPath: canonicalPath || null,
+          regions,
         }),
       });
 
@@ -297,6 +307,21 @@ export default function NewServicePage() {
               onChange={setContentBlocks}
             />
           </div>
+
+          {/* SEO */}
+          <SeoFieldsSection
+            metaTitle={metaTitle}
+            metaDescription={metaDescription}
+            canonicalPath={canonicalPath}
+            onMetaTitleChange={setMetaTitle}
+            onMetaDescriptionChange={setMetaDescription}
+            onCanonicalPathChange={setCanonicalPath}
+            fallbackTitle={title}
+            fallbackDescription={excerpt}
+            previewUrl={`basepointengineering.com/service-detail?slug=${slug || "your-slug"}`}
+            regions={regions}
+            onRegionsChange={setRegions}
+          />
 
           {/* Form Actions */}
           <div className="flex gap-4 pt-4">

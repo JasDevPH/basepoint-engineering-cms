@@ -6,6 +6,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useToast } from "@/components/Toast";
+import SeoFieldsSection from "@/components/SeoFieldsSection";
 import ProductBlockEditor, {
   ProductContentBlock,
 } from "@/components/ProductBlockEditor";
@@ -104,6 +105,11 @@ export default function NewProductPage() {
   >([]);
   const [loadingLSProducts, setLoadingLSProducts] = useState(false);
   const [selectedLSProductId, setSelectedLSProductId] = useState("");
+
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalPath, setCanonicalPath] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCategories();
@@ -424,6 +430,10 @@ export default function NewProductPage() {
             ? customFields.filter((cf) => cf.name.trim() && cf.values.trim())
             : null,
           lemonSqueezyProductId: selectedLSProductId || null,
+          metaTitle: metaTitle || null,
+          metaDescription: metaDescription || null,
+          canonicalPath: canonicalPath || null,
+          regions,
         }),
       });
 
@@ -1286,6 +1296,21 @@ export default function NewProductPage() {
               </div>
             )}
           </div>
+
+          {/* SEO */}
+          <SeoFieldsSection
+            metaTitle={metaTitle}
+            metaDescription={metaDescription}
+            canonicalPath={canonicalPath}
+            onMetaTitleChange={setMetaTitle}
+            onMetaDescriptionChange={setMetaDescription}
+            onCanonicalPathChange={setCanonicalPath}
+            fallbackTitle={title}
+            fallbackDescription={excerpt}
+            previewUrl={`basepointengineering.com/product-detail?slug=${slug || "your-slug"}`}
+            regions={regions}
+            onRegionsChange={setRegions}
+          />
 
           {/* Form Actions */}
           <div className="flex gap-4 pt-4">

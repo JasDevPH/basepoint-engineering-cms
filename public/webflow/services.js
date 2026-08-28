@@ -209,14 +209,24 @@ function displayServices(services) {
   fixLayout();
 }
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Init ───────────────────────────────────
 injectBreadcrumb();
 fixLayout();
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", function () {
-    loadServices();
+    loadServices().finally(function () {
+      window.prerenderReady = true;
+    });
     fixLayout();
   });
 } else {
-  loadServices();
+  loadServices().finally(function () {
+    window.prerenderReady = true;
+  });
 }

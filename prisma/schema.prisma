@@ -44,7 +44,13 @@ model Product {
   lemonSqueezyStoreId     String?
   lemonSqueezyStatus      String?  @default("draft") // draft, published
   syncedAt                DateTime?
-  
+
+  // SEO overrides
+  metaTitle       String?
+  metaDescription String?          @db.Text
+  canonicalPath   String?
+  regions         String[]         @default([]) // e.g. ["CA","US"]
+
   variants        ProductVariant[]
   orders          Order[]
   faqs            ProductFaq[]
@@ -98,6 +104,11 @@ model Blog {
   publishedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // SEO overrides
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  canonicalPath   String?
+
   products    BlogProduct[]
 }
 
@@ -110,7 +121,13 @@ model Service {
   order         Int?      // Display order in navigation
   contentBlocks Json?     // Block-based content
   published     Boolean   @default(true)
-  
+
+  // SEO overrides
+  metaTitle       String?
+  metaDescription String?   @db.Text
+  canonicalPath   String?
+  regions         String[]  @default([]) // e.g. ["CA","US"]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }

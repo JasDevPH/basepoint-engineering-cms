@@ -50,8 +50,19 @@ export async function PUT(
   try {
     const { id } = await params; // Await params first
     const body = await request.json();
-    const { title, slug, excerpt, icon, order, published, contentBlocks } =
-      body;
+    const {
+      title,
+      slug,
+      excerpt,
+      icon,
+      order,
+      published,
+      contentBlocks,
+      metaTitle,
+      metaDescription,
+      canonicalPath,
+      regions,
+    } = body;
 
     if (!title || !slug) {
       return NextResponse.json(
@@ -73,6 +84,10 @@ export async function PUT(
         order,
         published: published ?? true,
         contentBlocks: contentBlocks || null,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+        canonicalPath: canonicalPath || null,
+        regions: Array.isArray(regions) ? regions : [],
       },
     });
 

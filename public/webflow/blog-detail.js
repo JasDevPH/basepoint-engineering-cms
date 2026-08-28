@@ -145,11 +145,18 @@ function getSlugFromURL() {
   return new URLSearchParams(window.location.search).get("slug");
 }
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Load blog detail ──────────────────────
 async function loadBlogDetail() {
   const slug = getSlugFromURL();
   if (!slug) {
     showError("No blog slug provided");
+    window.prerenderReady = true;
     return;
   }
 
@@ -167,6 +174,8 @@ async function loadBlogDetail() {
   } catch (error) {
     console.error("Error loading blog:", error);
     showError("Failed to load blog post. Please try again.");
+  } finally {
+    window.prerenderReady = true;
   }
 }
 
@@ -174,7 +183,8 @@ function displayBlogDetail(blog) {
   // Clear skeletons before populating real content
   clearSkeletons();
 
-  document.title = blog.title + " - Basepoint Engineering";
+  const pageTitle = blog.metaTitle || blog.title;
+  document.title = pageTitle + " - Basepoint Engineering";
 
   let metaDesc = document.querySelector('meta[name="description"]');
   if (!metaDesc) {
@@ -183,6 +193,7 @@ function displayBlogDetail(blog) {
     document.head.appendChild(metaDesc);
   }
   metaDesc.content =
+    blog.metaDescription ||
     blog.excerpt ||
     (blog.content
       ? blog.content
@@ -192,8 +203,8 @@ function displayBlogDetail(blog) {
       : "") ||
     "Read " + blog.title + " on the Basepoint Engineering blog.";
 
-  setMetaTag("og:title", blog.title + " - Basepoint Engineering");
-  setMetaTag("twitter:title", blog.title + " - Basepoint Engineering");
+  setMetaTag("og:title", pageTitle + " - Basepoint Engineering");
+  setMetaTag("twitter:title", pageTitle + " - Basepoint Engineering");
   setMetaTag("og:description", metaDesc.content);
   setMetaTag("twitter:description", metaDesc.content);
   setMetaTag("og:url", window.location.href);
@@ -204,6 +215,22 @@ function displayBlogDetail(blog) {
     setMetaTag("twitter:image", blog.imageUrl);
   }
 
+  // Canonical tag — honor an editor-set override, else the computed slug URL.
+  (function () {
+    const canonicalUrl = blog.canonicalPath
+      ? "https://basepointengineering.com" + blog.canonicalPath
+      : "https://basepointengineering.com/blog-detail?slug=" +
+        getSlugFromURL();
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonicalUrl);
+  })();
+
+  injectBlogSchema(blog);
   injectBlogBreadcrumb(blog.title);
 
   // Title
@@ -465,6 +492,43 @@ function extractVimeoId(url) {
   return match ? match[1] : "";
 }
 
+// ── Blog schema ────────────────────────────
+function injectBlogSchema(blog) {
+  var existing = document.getElementById("bp-blog-schema");
+  if (existing) existing.remove();
+
+  var schema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: blog.title,
+    description:
+      blog.metaDescription ||
+      blog.excerpt ||
+      (blog.content
+        ? blog.content.replace(/<[^>]*>/g, "").substring(0, 300)
+        : undefined),
+    image: blog.imageUrl || undefined,
+    author: blog.author
+      ? { "@type": "Person", name: blog.author }
+      : { "@type": "Organization", name: "Basepoint Engineering" },
+    publisher: {
+      "@type": "Organization",
+      name: "Basepoint Engineering",
+    },
+    datePublished: blog.publishedAt || undefined,
+    dateModified: blog.updatedAt || blog.publishedAt || undefined,
+    mainEntityOfPage:
+      "https://basepointengineering.com/blog-detail?slug=" +
+      encodeURIComponent(getSlugFromURL() || ""),
+  };
+
+  var script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.id = "bp-blog-schema";
+  script.textContent = JSON.stringify(schema, null, 2);
+  document.head.appendChild(script);
+}
+
 // ── Breadcrumb ────────────────────────────
 function injectBlogBreadcrumb(blogTitle) {
   var existing = document.querySelector(".bp-breadcrumb");
@@ -602,22 +666,6 @@ function showError(message) {
       '</p><a href="/" style="color:#3b82f6;text-decoration:underline;font-family:\'Open Sans\',sans-serif;font-size:1rem;">← Back to Home</a></div>';
   }
 }
-
-// ── Canonical ─────────────────────────────
-(function () {
-  const blogSlug = new URLSearchParams(window.location.search).get("slug");
-  if (blogSlug) {
-    const canonicalUrl =
-      "https://basepointengineering.com/blog-detail?slug=" + blogSlug;
-    let link = document.querySelector("link[rel='canonical']");
-    if (!link) {
-      link = document.createElement("link");
-      link.setAttribute("rel", "canonical");
-      document.head.appendChild(link);
-    }
-    link.setAttribute("href", canonicalUrl);
-  }
-})();
 
 // ── Init ──────────────────────────────────
 loadGoogleFonts();

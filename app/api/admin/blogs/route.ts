@@ -16,6 +16,9 @@ export async function POST(request: NextRequest) {
       author,
       publishedAt,
       featured,
+      metaTitle,
+      metaDescription,
+      canonicalPath,
     } = body;
 
     if (!title || !slug) {
@@ -39,6 +42,9 @@ export async function POST(request: NextRequest) {
         author,
         publishedAt: publishedAt ? new Date(publishedAt) : undefined,
         featured: featured || false,
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+        canonicalPath: canonicalPath || null,
       },
     });
 

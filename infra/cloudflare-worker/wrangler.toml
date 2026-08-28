@@ -1,0 +1,14 @@
+name = "basepoint-bot-prerender"
+main = "bot-prerender-worker.js"
+compatibility_date = "2026-08-28"
+
+# Bind this Worker to the live domain once DNS is proxied through Cloudflare.
+# Route pattern intentionally excludes /cms.* / API subdomains — this Worker
+# only needs to intercept the Webflow-hosted marketing/content pages.
+routes = [
+  { pattern = "basepointengineering.com/*", zone_name = "basepointengineering.com" },
+  { pattern = "www.basepointengineering.com/*", zone_name = "basepointengineering.com" },
+]
+
+# Set with: wrangler secret put PRERENDER_TOKEN
+# [vars] section intentionally omitted — PRERENDER_TOKEN must be a secret, not a plaintext var.

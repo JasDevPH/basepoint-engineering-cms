@@ -43,7 +43,7 @@ export default function LinkGeneratorPage() {
   const [customUrl, setCustomUrl] = useState("");
 
   const [selectedPlatform, setSelectedPlatform] = useState<
-    "linkedin" | "facebook" | "custom" | ""
+    "linkedin" | "facebook" | "instagram" | "custom" | ""
   >("");
   const [trafficType, setTrafficType] = useState<"organic" | "paid" | "">("");
 
@@ -86,9 +86,10 @@ export default function LinkGeneratorPage() {
         }?slug=${selectedItem.slug}`
       : "";
 
-  const selectPlatform = (platform: "linkedin" | "facebook" | "custom") => {
+  const selectPlatform = (platform: "linkedin" | "facebook" | "instagram" | "custom") => {
     setSelectedPlatform(platform);
-    const isSocial = platform === "linkedin" || platform === "facebook";
+    const isSocial =
+      platform === "linkedin" || platform === "facebook" || platform === "instagram";
     setUtmSource(isSocial ? platform : "");
   };
 
@@ -155,8 +156,9 @@ export default function LinkGeneratorPage() {
             <h1 className="text-3xl font-bold text-gray-900">Link Generator</h1>
           </div>
           <p className="text-gray-600">
-            Pick a page, tag it for LinkedIn, Facebook, or any other source,
-            and get a copy-ready tracked link for Google Analytics.
+            Pick a page, tag it for LinkedIn, Facebook, Instagram, or any
+            other source, and get a copy-ready tracked link for Google
+            Analytics.
           </p>
         </div>
 
@@ -257,6 +259,17 @@ export default function LinkGeneratorPage() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => selectPlatform("instagram")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPlatform === "instagram"
+                        ? "bg-pink-600 text-white"
+                        : "bg-pink-50 text-pink-700 hover:bg-pink-100"
+                    }`}
+                  >
+                    Instagram
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => selectPlatform("custom")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       selectedPlatform === "custom"
@@ -299,8 +312,8 @@ export default function LinkGeneratorPage() {
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Sets utm_medium to "social" (organic) or "paid-social" (paid)
-                  for LinkedIn/Facebook, so GA4 reports them under the correct
-                  Organic Social / Paid Social channel.
+                  for LinkedIn/Facebook/Instagram, so GA4 reports them under
+                  the correct Organic Social / Paid Social channel.
                 </p>
               </div>
 

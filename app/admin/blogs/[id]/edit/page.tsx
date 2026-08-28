@@ -7,6 +7,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
 import BlockEditor, { ContentBlock } from "@/components/BlockEditor";
+import SeoFieldsSection from "@/components/SeoFieldsSection";
 import {
   FileText,
   Save,
@@ -62,6 +63,9 @@ export default function EditBlogPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [featured, setFeatured] = useState(false);
   const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalPath, setCanonicalPath] = useState("");
 
   // Related Products state
   const [productLibrary, setProductLibrary] = useState<AdminProduct[]>([]);
@@ -201,6 +205,9 @@ export default function EditBlogPage() {
         setImageUrl(blog.imageUrl || "");
         setAuthor(blog.author || "");
         setFeatured(blog.featured || false);
+        setMetaTitle(blog.metaTitle || "");
+        setMetaDescription(blog.metaDescription || "");
+        setCanonicalPath(blog.canonicalPath || "");
 
         if (blog.contentBlocks && Array.isArray(blog.contentBlocks)) {
           setContentBlocks(blog.contentBlocks);
@@ -290,6 +297,9 @@ export default function EditBlogPage() {
           author,
           publishedAt: publishedAt || undefined,
           featured,
+          metaTitle: metaTitle || null,
+          metaDescription: metaDescription || null,
+          canonicalPath: canonicalPath || null,
         }),
       });
 
@@ -577,6 +587,19 @@ export default function EditBlogPage() {
               </div>
             </label>
           </div>
+
+          {/* SEO */}
+          <SeoFieldsSection
+            metaTitle={metaTitle}
+            metaDescription={metaDescription}
+            canonicalPath={canonicalPath}
+            onMetaTitleChange={setMetaTitle}
+            onMetaDescriptionChange={setMetaDescription}
+            onCanonicalPathChange={setCanonicalPath}
+            fallbackTitle={title}
+            fallbackDescription={excerpt}
+            previewUrl={`basepointengineering.com/blog-detail?slug=${slug}`}
+          />
 
           {/* Related Products */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

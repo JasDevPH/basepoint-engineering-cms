@@ -197,11 +197,20 @@ async function injectProductSchema() {
   }
 }
 
+// ── Prerender.io / Cloudflare Worker readiness contract ──
+window.prerenderReady = false;
+setTimeout(function () {
+  window.prerenderReady = true;
+}, 8000);
+
 // ── Init ───────────────────────────────────
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function () {
-    injectProductSchema();
+function initProductsPage() {
+  injectProductSchema().finally(function () {
+    window.prerenderReady = true;
   });
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initProductsPage);
 } else {
-  injectProductSchema();
+  initProductsPage();
 }

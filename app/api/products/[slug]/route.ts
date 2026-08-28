@@ -21,6 +21,21 @@ export async function GET(
           orderBy: { order: "asc" },
           include: { faq: true },
         },
+        blogs: {
+          where: { enabled: true },
+          orderBy: { order: "asc" },
+          include: {
+            blog: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+                excerpt: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -41,8 +56,17 @@ export async function GET(
       order: pf.order,
     }));
 
+    const blogs = product.blogs.map((bp) => ({
+      id: bp.blog.id,
+      slug: bp.blog.slug,
+      title: bp.blog.title,
+      excerpt: bp.blog.excerpt,
+      imageUrl: bp.blog.imageUrl,
+      order: bp.order,
+    }));
+
     return NextResponse.json(
-      { success: true, data: { ...product, faqs } },
+      { success: true, data: { ...product, faqs, blogs } },
       { headers: corsHeaders(request.headers.get("origin") || undefined) }
     );
   } catch (error) {

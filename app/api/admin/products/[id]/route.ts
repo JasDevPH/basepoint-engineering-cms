@@ -248,6 +248,10 @@ export async function PUT(
       customFields,
       lemonSqueezyProductId,
       stripePaymentLink, // 🆕 ADD
+      metaTitle,
+      metaDescription,
+      canonicalPath,
+      regions,
     } = body;
 
     if (!title || !slug) {
@@ -306,6 +310,10 @@ export async function PUT(
           : existingProduct.lemonSqueezyStatus,
         syncedAt: lemonSqueezyProductId ? new Date() : existingProduct.syncedAt,
         stripePaymentLink: stripePaymentLink || null, // 🆕 ADD
+        metaTitle: metaTitle || null,
+        metaDescription: metaDescription || null,
+        canonicalPath: canonicalPath || null,
+        regions: Array.isArray(regions) ? regions : [],
       },
     });
 

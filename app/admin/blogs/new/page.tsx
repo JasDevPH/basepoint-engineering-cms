@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { useToast } from "@/components/Toast";
 import BlockEditor, { ContentBlock } from "@/components/BlockEditor";
+import SeoFieldsSection from "@/components/SeoFieldsSection";
 import {
   FileText,
   Save,
@@ -35,6 +36,9 @@ export default function NewBlogPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [featured, setFeatured] = useState(false);
   const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalPath, setCanonicalPath] = useState("");
 
   const handleFeaturedImageUpload = async (file: File) => {
     setUploadingFeaturedImage(true);
@@ -93,6 +97,9 @@ export default function NewBlogPage() {
           author,
           publishedAt: publishedAt || undefined,
           featured,
+          metaTitle: metaTitle || null,
+          metaDescription: metaDescription || null,
+          canonicalPath: canonicalPath || null,
         }),
       });
 
@@ -339,6 +346,19 @@ export default function NewBlogPage() {
               </div>
             </div>
           </div>
+
+          {/* SEO */}
+          <SeoFieldsSection
+            metaTitle={metaTitle}
+            metaDescription={metaDescription}
+            canonicalPath={canonicalPath}
+            onMetaTitleChange={setMetaTitle}
+            onMetaDescriptionChange={setMetaDescription}
+            onCanonicalPathChange={setCanonicalPath}
+            fallbackTitle={title}
+            fallbackDescription={excerpt}
+            previewUrl={`basepointengineering.com/blog-detail?slug=${slug || "your-slug"}`}
+          />
 
           {/* Featured Toggle */}
           <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl border border-yellow-200 p-6">

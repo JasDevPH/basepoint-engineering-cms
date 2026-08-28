@@ -8,6 +8,7 @@ import AdminLayout from "@/components/AdminLayout";
 import ProductBlockEditor, {
   ProductContentBlock,
 } from "@/components/ProductBlockEditor";
+import SeoFieldsSection from "@/components/SeoFieldsSection";
 import {
   Package,
   Save,
@@ -31,6 +32,7 @@ import {
   Edit2,
   Check,
   HelpCircle,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmModal";
@@ -69,6 +71,21 @@ interface ProductFaq {
   enabled: boolean;
   order: number;
   faq: Faq;
+}
+
+interface AdminBlog {
+  id: string;
+  title: string;
+  slug: string;
+  imageUrl: string | null;
+}
+
+interface ProductBlog {
+  id: string;
+  blogId: string;
+  enabled: boolean;
+  order: number;
+  blog: AdminBlog;
 }
 
 interface LemonSqueezyProduct {
@@ -146,6 +163,18 @@ export default function EditProductPage() {
 
   // Stripe Payment Link State
   const [stripePaymentLink, setStripePaymentLink] = useState("");
+
+  // SEO State
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalPath, setCanonicalPath] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
+
+  // Related Blogs State
+  const [blogLibrary, setBlogLibrary] = useState<AdminBlog[]>([]);
+  const [productBlogs, setProductBlogs] = useState<ProductBlog[]>([]);
+  const [selectedBlogToAttach, setSelectedBlogToAttach] = useState("");
+  const [attachingBlog, setAttachingBlog] = useState(false);
 
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(
     new Set()
@@ -416,15 +445,128 @@ export default function EditProductPage() {
     }
   };
 
+  const fetchBlogLibrary = async () => {
+    try {
+      const res = await fetch("/api/admin/blogs");
+      const data = await res.json();
+      if (data.success) {
+        setBlogLibrary(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching blog library:", error);
+    }
+  };
+
+  const fetchProductBlogs = async () => {
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/blogs`);
+      const data = await res.json();
+      if (data.success) {
+        setProductBlogs(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching product blogs:", error);
+    }
+  };
+
+  const attachBlog = async () => {
+    if (!selectedBlogToAttach) {
+      toast.warning("Please select a blog post to attach");
+      return;
+    }
+
+    setAttachingBlog(true);
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/blogs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blogId: selectedBlogToAttach }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProductBlogs((prev) => [...prev, data.data]);
+        setSelectedBlogToAttach("");
+        toast.success("Blog post attached!");
+      } else {
+        toast.error(data.error || "Failed to attach blog post");
+      }
+    } catch (error) {
+      toast.error("Error attaching blog post");
+    } finally {
+      setAttachingBlog(false);
+    }
+  };
+
+  const toggleProductBlogEnabled = async (
+    productBlogId: string,
+    currentEnabled: boolean
+  ) => {
+    try {
+      setProductBlogs((prev) =>
+        prev.map((pb) =>
+          pb.id === productBlogId ? { ...pb, enabled: !currentEnabled } : pb
+        )
+      );
+      const res = await fetch(
+        `/api/admin/products/${productId}/blogs/${productBlogId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !currentEnabled }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        setProductBlogs((prev) =>
+          prev.map((pb) =>
+            pb.id === productBlogId ? { ...pb, enabled: currentEnabled } : pb
+          )
+        );
+        toast.error("Failed to update blog status");
+      }
+    } catch {
+      toast.error("Error updating blog status");
+    }
+  };
+
+  const removeProductBlog = async (productBlogId: string) => {
+    const confirmed = await confirmAction({
+      title: "Remove Blog Post",
+      message:
+        "Remove this blog post from this product? The blog post itself is unaffected.",
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(
+        `/api/admin/products/${productId}/blogs/${productBlogId}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setProductBlogs((prev) => prev.filter((pb) => pb.id !== productBlogId));
+        toast.success("Blog post removed from product");
+      } else {
+        toast.error("Failed to remove blog post");
+      }
+    } catch {
+      toast.error("Error removing blog post");
+    }
+  };
+
   useEffect(() => {
     if (productId) {
       fetchProduct();
       fetchVariants();
       fetchProductFaqs();
+      fetchProductBlogs();
     }
     fetchCategories();
     fetchLemonSqueezyProducts();
     fetchFaqLibrary();
+    fetchBlogLibrary();
   }, [productId]);
 
   const startEditPrice = (variant: any) => {
@@ -635,6 +777,10 @@ export default function EditProductPage() {
 
         setSelectedLSProductId(product.lemonSqueezyProductId || "");
         setStripePaymentLink(product.stripePaymentLink || "");
+        setMetaTitle(product.metaTitle || "");
+        setMetaDescription(product.metaDescription || "");
+        setCanonicalPath(product.canonicalPath || "");
+        setRegions(product.regions || []);
 
         if (product.contentBlocks && Array.isArray(product.contentBlocks)) {
           setContentBlocks(product.contentBlocks);
@@ -914,6 +1060,10 @@ export default function EditProductPage() {
             : null,
           lemonSqueezyProductId: selectedLSProductId || null,
           stripePaymentLink: stripePaymentLink || null,
+          metaTitle: metaTitle || null,
+          metaDescription: metaDescription || null,
+          canonicalPath: canonicalPath || null,
+          regions,
         }),
       });
 
@@ -2486,6 +2636,135 @@ export default function EditProductPage() {
                       <button
                         type="button"
                         onClick={() => removeProductFaq(pf.id)}
+                        className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Remove from product"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SEO */}
+          <SeoFieldsSection
+            metaTitle={metaTitle}
+            metaDescription={metaDescription}
+            canonicalPath={canonicalPath}
+            onMetaTitleChange={setMetaTitle}
+            onMetaDescriptionChange={setMetaDescription}
+            onCanonicalPathChange={setCanonicalPath}
+            fallbackTitle={title}
+            fallbackDescription={excerpt}
+            previewUrl={`basepointengineering.com/product-detail?slug=${slug}`}
+            regions={regions}
+            onRegionsChange={setRegions}
+          />
+
+          {/* Related Blog Posts */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#1e3a8a]" />
+                  Related Blog Posts
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Attach blog posts to show as related articles on this
+                  product's page — helps internal linking and SEO.
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {productBlogs.length} attached
+              </span>
+            </div>
+
+            {/* Attach Blog */}
+            <div className="flex flex-col md:flex-row gap-3 mb-6 mt-4">
+              <select
+                value={selectedBlogToAttach}
+                onChange={(e) => setSelectedBlogToAttach(e.target.value)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent transition-all outline-none bg-white"
+              >
+                <option value="">Select a blog post to attach...</option>
+                {blogLibrary
+                  .filter(
+                    (blog) =>
+                      !productBlogs.some((pb) => pb.blogId === blog.id)
+                  )
+                  .map((blog) => (
+                    <option key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={attachBlog}
+                disabled={attachingBlog || !selectedBlogToAttach}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl shadow-lg shadow-[#1e3a8a]/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {attachingBlog ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                <span>Attach</span>
+              </button>
+            </div>
+
+            {/* Attached Blogs list */}
+            {productBlogs.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 rounded-xl">
+                <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">
+                  No blog posts attached to this product yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {productBlogs.map((pb) => (
+                  <div
+                    key={pb.id}
+                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {pb.blog.imageUrl ? (
+                        <img
+                          src={pb.blog.imageUrl}
+                          alt={pb.blog.title}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {pb.blog.title}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleProductBlogEnabled(pb.id, pb.enabled !== false)
+                        }
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          pb.enabled !== false
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                        }`}
+                      >
+                        {pb.enabled !== false ? "Enabled" : "Disabled"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProductBlog(pb.id)}
                         className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                         title="Remove from product"
                       >
