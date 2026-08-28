@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
-const BASE_URL = "https://www.basepointengineering.com";
+// Matches the canonical domain used in every page's own <link rel="canonical">
+// tag (public/webflow/*.js) — keep these in sync, a www/non-www mismatch
+// between the sitemap and canonical tags is a real trust-signal problem.
+const BASE_URL = "https://basepointengineering.com";
 
 // Only real, indexable content pages. Transactional/utility pages
 // (checkout, paypal-checkout, order-confirmation, thank-you) are deliberately

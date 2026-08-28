@@ -21,6 +21,13 @@
 // Snapshot correctness depends on public/webflow/*.js setting
 // window.prerenderReady = true once content/meta/JSON-LD are in the DOM —
 // see the readiness contract added to each detail/listing script.
+//
+// NOTE: proxying /sitemap.xml and /robots.txt through to the CMS's dynamic
+// routes was attempted here and reverted — fetch() to cms.basepointengineering.com
+// from inside this Worker returns an infinite self-redirect (308 to the exact
+// same URL), reproducible only from within the Worker, not via a plain
+// external request to the same URL. Likely another O2O-zone-adjacent
+// Cloudflare quirk. Left as a known gap; see project notes.
 
 const HANDLED_HOSTNAMES = new Set([
   "basepointengineering.com",
